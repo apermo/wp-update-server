@@ -177,30 +177,61 @@ See `config.sample.php` for all available options and their defaults.
 
 ## Step 5: Update Custom Subclasses
 
-If you have a custom server class that extends `Wpup_UpdateServer`, review these breaking changes:
+All classes have been moved from the `Wpup_` prefix convention to the `Apermo\WpUpdateServer`
+namespace. Classes are now in `src/` instead of `includes/Wpup/`.
+
+### Namespace mapping
+
+| v2.x | v3.0.0 |
+|---|---|
+| `Wpup_UpdateServer` | `Apermo\WpUpdateServer\UpdateServer` |
+| `Wpup_Request` | `Apermo\WpUpdateServer\Request` |
+| `Wpup_Package` | `Apermo\WpUpdateServer\Package` |
+| `Wpup_Cache` | `Apermo\WpUpdateServer\Cache\CacheInterface` |
+| `Wpup_FileCache` | `Apermo\WpUpdateServer\Cache\FileCache` |
+| `Wpup_Headers` | `Apermo\WpUpdateServer\Headers` |
+| `Wpup_InvalidPackageException` | `Apermo\WpUpdateServer\Exception\InvalidPackageException` |
+
+### Updating your custom server class
+
+```php
+// v2.x
+require __DIR__ . '/loader.php';
+require __DIR__ . '/MyCustomServer.php';
+
+class MyCustomServer extends Wpup_UpdateServer {
+    protected function filterMetadata($meta, $request) {
+        $meta = parent::filterMetadata($meta, $request);
+        unset($meta['download_url']);
+        return $meta;
+    }
+}
+
+$server = new MyCustomServer();
+$server->handleRequest();
+
+// v3.0.0
+require __DIR__ . '/loader.php';
+
+use Apermo\WpUpdateServer\UpdateServer;
+use Apermo\WpUpdateServer\Request;
+
+class MyCustomServer extends UpdateServer {
+    protected function filterMetadata(array $meta, Request $request): array {
+        $meta = parent::filterMetadata($meta, $request);
+        unset($meta['download_url']);
+        return $meta;
+    }
+}
+
+$server = new MyCustomServer();
+$server->handleRequest();
+```
 
 ### Constructor signature
 
 The constructor now loads configuration automatically. If you override it, call `parent::__construct()`
-first:
-
-```php
-// v2.x
-class MyServer extends Wpup_UpdateServer {
-    public function __construct($serverUrl = null, $serverDirectory = null) {
-        parent::__construct($serverUrl, $serverDirectory);
-        $this->enableIpAnonymization();
-        $this->enableLogRotation();
-    }
-}
-
-// v3.0.0 — move settings to config.php instead
-class MyServer extends Wpup_UpdateServer {
-    // No constructor override needed if your only customizations were
-    // enableIpAnonymization() and enableLogRotation().
-    // These are now handled by config.php.
-}
-```
+first. Settings like IP anonymization and log rotation are now handled via `config.php`.
 
 ### `findPackage()` signature changed
 
@@ -209,47 +240,17 @@ class MyServer extends Wpup_UpdateServer {
 protected function findPackage($slug)
 
 // v3.0.0
-protected function findPackage(string $slug, ?string $version = null, string $channel = 'stable'): ?Wpup_Package
+protected function findPackage(string $slug, ?string $version = null, string $channel = 'stable'): ?Package
 ```
 
-If you override `findPackage()`, update your signature to match.
+### `CacheInterface` has a new method
 
-### `checkAuthorization()` is no longer a stub
-
-If you implemented custom authorization logic by overriding `checkAuthorization()`, it will still
-work. However, you may want to consider using the built-in license provider system instead
-(see `config.sample.php` under `auth`).
-
-### `dispatch()` uses `match` expression
-
-If you override `dispatch()` to add custom actions, update your code:
+If you implemented a custom cache class, update the interface name and add `clearBySlug()`:
 
 ```php
-// v2.x
-protected function dispatch($request) {
-    if ($request->action === 'my_action') {
-        $this->actionMyAction($request);
-    } else {
-        parent::dispatch($request);
-    }
-}
+use Apermo\WpUpdateServer\Cache\CacheInterface;
 
-// v3.0.0 — same pattern still works
-protected function dispatch($request) {
-    if ($request->action === 'my_action') {
-        $this->actionMyAction($request);
-    } else {
-        parent::dispatch($request);
-    }
-}
-```
-
-### `Wpup_Cache` interface has a new method
-
-If you implemented a custom cache class, add the `clearBySlug()` method:
-
-```php
-class MyCache implements Wpup_Cache {
+class MyCache implements CacheInterface {
     // Existing methods: get(), set(), clear()
 
     // New in v3.0.0:
@@ -259,31 +260,25 @@ class MyCache implements Wpup_Cache {
 }
 ```
 
-### Autoloader replaces manual requires
+### Autoloader
 
-`loader.php` now uses `spl_autoload_register` instead of manual `require_once` calls. If your
-custom class follows the `Wpup_` naming convention (e.g., `Wpup_MyCustomClass` in
-`includes/Wpup/MyCustomClass.php`), it will be loaded automatically. Otherwise, require it
-explicitly in your `index.php`.
+`loader.php` uses Composer autoload if `vendor/autoload.php` exists, otherwise falls back to a
+PSR-4 autoloader for the `Apermo\WpUpdateServer` namespace. Run `composer install` for the best
+experience, or deploy without Composer — both work.
 
 ## Step 6: Update index.php (if customized)
 
-If your `index.php` required custom files manually, you can simplify it since the autoloader
-handles `Wpup_` classes:
+The default `index.php` now uses the namespaced class:
 
 ```php
-// v2.x
+// v3.0.0
 require __DIR__ . '/loader.php';
-require __DIR__ . '/MyCustomServer.php';
-$server = new MyCustomServer();
-$server->handleRequest();
 
-// v3.0.0 — same pattern, but loader.php now autoloads Wpup_ classes
-require __DIR__ . '/loader.php';
-require __DIR__ . '/MyCustomServer.php'; // still needed if not under Wpup_ prefix
-$server = new MyCustomServer();
+$server = new Apermo\WpUpdateServer\UpdateServer();
 $server->handleRequest();
 ```
+
+If you have a custom server class, require it after `loader.php` (see Step 5 for the full example).
 
 ## Step 7: Clear the Cache
 
@@ -324,7 +319,9 @@ curl -sI "$SERVER_URL/?action=download&slug=my-plugin&version=1.2.0"
 | Multiple versions | Not supported | `?version=x.y.z` parameter |
 | Pre-release channels | Not supported | `?channel=stable\|rc\|beta\|alpha` |
 | Composer support | Not supported | `?action=composer_packages` |
-| License auth | Manual subclass stub | Built-in with `Wpup_LicenseProvider` |
+| License auth | Manual subclass stub | Built-in `Apermo\WpUpdateServer\Auth\LicenseProvider` |
 | Upload API | Not supported | `POST ?action=upload` |
 | CI/CD deploy | Manual file copy | Reusable GitHub Actions workflow |
-| Class loading | Manual `require_once` | `spl_autoload_register` |
+| Class namespace | `Wpup_` prefix (PSR-0) | `Apermo\WpUpdateServer\` (PSR-4) |
+| Class location | `includes/Wpup/` | `src/` |
+| Autoloading | Manual `require_once` | Composer PSR-4 with fallback autoloader |

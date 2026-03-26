@@ -1,5 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
+namespace Apermo\WpUpdateServer\Auth;
+
 /**
  * File-based license provider.
  *
@@ -15,13 +19,12 @@
  *     }
  * }
  */
-class Wpup_FileLicenseProvider implements Wpup_LicenseProvider {
+class FileLicenseProvider implements LicenseProvider {
 
 	private array $licenses;
 
 	public function __construct(string $licensesFile) {
 		if (is_file($licensesFile) && is_readable($licensesFile)) {
-			//phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown
 			$data = json_decode(file_get_contents($licensesFile), true);
 			$this->licenses = is_array($data) ? $data : [];
 		} else {

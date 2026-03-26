@@ -1,9 +1,16 @@
 <?php
 
-class Wpup_PackageRepository {
+declare(strict_types=1);
+
+namespace Apermo\WpUpdateServer;
+
+use Apermo\WpUpdateServer\Cache\CacheInterface;
+use Apermo\WpUpdateServer\Exception\InvalidPackageException;
+
+class PackageRepository {
 
 	protected string $packageDirectory;
-	protected ?Wpup_Cache $cache;
+	protected ?CacheInterface $cache;
 	protected bool $legacyFlatEnabled;
 
 	/** @var callable */
@@ -11,14 +18,14 @@ class Wpup_PackageRepository {
 
 	public function __construct(
 		string $packageDirectory,
-		?Wpup_Cache $cache = null,
+		?CacheInterface $cache = null,
 		bool $legacyFlatEnabled = false,
 		?callable $packageFileLoader = null,
 	) {
 		$this->packageDirectory = $packageDirectory;
 		$this->cache = $cache;
 		$this->legacyFlatEnabled = $legacyFlatEnabled;
-		$this->packageFileLoader = $packageFileLoader ?? [Wpup_Package::class, 'fromArchive'];
+		$this->packageFileLoader = $packageFileLoader ?? [Package::class, 'fromArchive'];
 	}
 
 	/**
@@ -28,25 +35,22 @@ class Wpup_PackageRepository {
 		string $slug,
 		?string $version = null,
 		string $channel = 'stable',
-	): ?Wpup_Package {
+	): ?Package {
 		$safeSlug = self::sanitizeSlug($slug);
 
-		// Specific version requested.
 		if ($version !== null) {
 			return $this->loadSpecificVersion($safeSlug, $version);
 		}
 
-		// Scan versioned directory for all available versions.
 		$versionMap = $this->scanVersionedDirectory($safeSlug);
 		if (!empty($versionMap)) {
-			$latest = Wpup_VersionUtils::getLatest(array_keys($versionMap), $channel);
+			$latest = VersionUtils::getLatest(array_keys($versionMap), $channel);
 			if ($latest === null) {
 				return null;
 			}
 			return $this->loadPackageFile($versionMap[$latest], $safeSlug);
 		}
 
-		// Fall back to legacy flat file if enabled.
 		if ($this->legacyFlatEnabled) {
 			return $this->findLegacyPackage($safeSlug);
 		}
@@ -55,23 +59,21 @@ class Wpup_PackageRepository {
 	}
 
 	/**
-	 * Return all versions of a package as Wpup_Package instances, sorted newest first.
+	 * Return all versions of a package as Package instances, sorted newest first.
 	 *
-	 * @return Wpup_Package[]
+	 * @return Package[]
 	 */
 	public function findAllVersions(string $slug): array {
 		$safeSlug = self::sanitizeSlug($slug);
 		$versionMap = $this->scanVersionedDirectory($safeSlug);
 
-		// Include legacy flat file as a version if applicable.
 		if ($this->legacyFlatEnabled && empty($versionMap)) {
 			$legacy = $this->findLegacyPackage($safeSlug);
 			return $legacy !== null ? [$legacy] : [];
 		}
 
-		// Sort versions descending.
 		$versions = array_keys($versionMap);
-		usort($versions, fn(string $a, string $b): int => Wpup_VersionUtils::compareVersions($b, $a));
+		usort($versions, fn(string $a, string $b): int => VersionUtils::compareVersions($b, $a));
 
 		$packages = [];
 		foreach ($versions as $version) {
@@ -84,24 +86,19 @@ class Wpup_PackageRepository {
 	}
 
 	/**
-	 * Return all known package slugs (both versioned directories and legacy flat files).
+	 * Return all known package slugs.
 	 *
 	 * @return string[]
 	 */
 	public function listSlugs(): array {
 		$slugs = [];
 
-		// Scan for versioned directories (directories containing version subdirs).
 		if (is_dir($this->packageDirectory)) {
 			foreach (new \DirectoryIterator($this->packageDirectory) as $entry) {
 				if ($entry->isDot() || !$entry->isDir()) {
 					continue;
 				}
 				$name = $entry->getFilename();
-				if ($name === '.' || $name === '..') {
-					continue;
-				}
-				// Check if this directory contains version subdirectories.
 				$versionMap = $this->scanVersionedDirectory($name);
 				if (!empty($versionMap)) {
 					$slugs[] = $name;
@@ -109,7 +106,6 @@ class Wpup_PackageRepository {
 			}
 		}
 
-		// Scan for legacy flat files.
 		if ($this->legacyFlatEnabled && is_dir($this->packageDirectory)) {
 			foreach (glob($this->packageDirectory . '/*.zip', GLOB_NOESCAPE) as $file) {
 				$name = basename($file, '.zip');
@@ -124,8 +120,6 @@ class Wpup_PackageRepository {
 	}
 
 	/**
-	 * Scan the versioned directory structure for a slug.
-	 *
 	 * @return array<string, string> Map of version => zip file path.
 	 */
 	protected function scanVersionedDirectory(string $slug): array {
@@ -149,7 +143,7 @@ class Wpup_PackageRepository {
 		return $versions;
 	}
 
-	protected function loadSpecificVersion(string $slug, string $version): ?Wpup_Package {
+	protected function loadSpecificVersion(string $slug, string $version): ?Package {
 		$zipPath = $this->packageDirectory . '/' . $slug . '/' . $version . '/' . $slug . '.zip';
 		if (is_file($zipPath) && is_readable($zipPath)) {
 			return $this->loadPackageFile($zipPath, $slug);
@@ -157,7 +151,7 @@ class Wpup_PackageRepository {
 		return null;
 	}
 
-	protected function findLegacyPackage(string $slug): ?Wpup_Package {
+	protected function findLegacyPackage(string $slug): ?Package {
 		$filename = $this->packageDirectory . '/' . $slug . '.zip';
 		if (is_file($filename) && is_readable($filename)) {
 			return $this->loadPackageFile($filename, $slug);
@@ -165,10 +159,10 @@ class Wpup_PackageRepository {
 		return null;
 	}
 
-	protected function loadPackageFile(string $filename, string $slug): ?Wpup_Package {
+	protected function loadPackageFile(string $filename, string $slug): ?Package {
 		try {
 			return call_user_func($this->packageFileLoader, $filename, $slug, $this->cache);
-		} catch (Wpup_InvalidPackageException) {
+		} catch (InvalidPackageException) {
 			return null;
 		}
 	}

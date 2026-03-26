@@ -22,6 +22,15 @@
 		"ext-json": "*",
 		"ext-zip": "*"
 	},
+	"autoload": {
+		"psr-4": {
+			"Apermo\\WpUpdateServer\\": "src/"
+		},
+		"classmap": [
+			"includes/extension-meta/",
+			"includes/Parsedown/"
+		]
+	},
 	"suggest": {
 		"ext-mbstring": "Used for escaping log values in a utf8 compatible manner. If the extension isn't installed logged values are handled as single-byte character strings."
 	}

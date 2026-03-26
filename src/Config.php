@@ -1,6 +1,10 @@
 <?php
 
-class Wpup_Config {
+declare(strict_types=1);
+
+namespace Apermo\WpUpdateServer;
+
+class Config {
 
 	private array $data;
 
@@ -20,7 +24,7 @@ class Wpup_Config {
 
 		$data = require $path;
 		if (!is_array($data)) {
-			throw new RuntimeException('Config file must return an array: ' . $path);
+			throw new \RuntimeException('Config file must return an array: ' . $path);
 		}
 
 		return new self($data);

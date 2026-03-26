@@ -1,19 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
+namespace Apermo\WpUpdateServer;
+
 /**
  * Generates Composer-compatible packages.json responses.
- *
- * Exposes all packages in the repository as a Composer v1/v2 repository,
- * enabling `composer require vendor/slug` for WordPress plugins and themes.
  */
-class Wpup_ComposerEndpoint {
+class ComposerEndpoint {
 
-	private Wpup_PackageRepository $repository;
+	private PackageRepository $repository;
 	private string $serverUrl;
 	private string $vendorPrefix;
 
 	public function __construct(
-		Wpup_PackageRepository $repository,
+		PackageRepository $repository,
 		string $serverUrl,
 		string $vendorPrefix = 'wpup',
 	) {

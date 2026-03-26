@@ -1,11 +1,19 @@
 <?php
 
-class Wpup_UploadHandler {
+declare(strict_types=1);
+
+namespace Apermo\WpUpdateServer;
+
+use Apermo\WpUpdateServer\Cache\CacheInterface;
+use Apermo\WpUpdateServer\Cache\FileCache;
+use Apermo\WpUpdateServer\Validation\ZipValidator;
+
+class UploadHandler {
 
 	private string $packageDirectory;
-	private ?Wpup_Cache $cache;
+	private ?CacheInterface $cache;
 
-	public function __construct(string $packageDirectory, ?Wpup_Cache $cache = null) {
+	public function __construct(string $packageDirectory, ?CacheInterface $cache = null) {
 		$this->packageDirectory = $packageDirectory;
 		$this->cache = $cache;
 	}
@@ -13,68 +21,58 @@ class Wpup_UploadHandler {
 	/**
 	 * Process an uploaded ZIP file.
 	 *
-	 * Validates the archive, extracts slug and version from the plugin/theme headers,
-	 * and places it in the versioned directory structure.
-	 *
 	 * @param array $fileInfo The $_FILES entry for the uploaded file.
 	 * @param string|null $expectedSlug Optional slug to validate against.
 	 * @return array{slug: string, version: string, path: string, metadata: array}
-	 * @throws RuntimeException On validation or filesystem errors.
+	 * @throws \RuntimeException On validation or filesystem errors.
 	 */
 	public function handleUpload(array $fileInfo, ?string $expectedSlug = null): array {
 		$this->validateUploadedFile($fileInfo);
 
 		$tmpFile = $fileInfo['tmp_name'];
 
-		// Validate zip structure.
-		$result = Wpup_ZipValidator::validate($tmpFile, $expectedSlug);
+		$result = ZipValidator::validate($tmpFile, $expectedSlug);
 		if (!$result->isValid()) {
-			throw new RuntimeException(
+			throw new \RuntimeException(
 				'Invalid package: ' . implode('; ', $result->getErrors())
 			);
 		}
 
-		// Extract metadata to determine slug and version.
-		$packageInfo = WshWordPressPackageParser::parsePackage($tmpFile);
+		$packageInfo = \WshWordPressPackageParser::parsePackage($tmpFile);
 		if ($packageInfo === false) {
-			throw new RuntimeException('Could not parse package metadata.');
+			throw new \RuntimeException('Could not parse package metadata.');
 		}
 
 		$slug = $this->detectSlug($packageInfo, $expectedSlug);
 		$version = $packageInfo['header']['Version'] ?? null;
 		if (empty($version)) {
-			throw new RuntimeException('Package does not contain a version header.');
+			throw new \RuntimeException('Package does not contain a version header.');
 		}
 
-		// Create target directory.
 		$targetDir = $this->packageDirectory . '/' . $slug . '/' . $version;
 		if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true)) {
-			throw new RuntimeException('Failed to create directory: ' . $targetDir);
+			throw new \RuntimeException('Failed to create directory: ' . $targetDir);
 		}
 
 		$targetPath = $targetDir . '/' . $slug . '.zip';
 
-		// Check for existing version.
 		if (is_file($targetPath)) {
-			throw new RuntimeException(sprintf(
+			throw new \RuntimeException(sprintf(
 				'Version %s of %s already exists. Use ?force=1 to overwrite.',
 				$version,
 				$slug,
 			));
 		}
 
-		// Move the uploaded file atomically.
 		if (!move_uploaded_file($tmpFile, $targetPath)) {
-			throw new RuntimeException('Failed to move uploaded file to target location.');
+			throw new \RuntimeException('Failed to move uploaded file to target location.');
 		}
 
-		// Invalidate cache.
-		if ($this->cache instanceof Wpup_FileCache) {
+		if ($this->cache instanceof FileCache) {
 			$this->cache->clearBySlug($slug);
 		}
 
-		// Load full metadata for the response.
-		$package = Wpup_Package::fromArchive($targetPath, $slug, $this->cache);
+		$package = Package::fromArchive($targetPath, $slug, $this->cache);
 
 		return [
 			'slug'     => $slug,
@@ -92,40 +90,40 @@ class Wpup_UploadHandler {
 
 		$tmpFile = $fileInfo['tmp_name'];
 
-		$result = Wpup_ZipValidator::validate($tmpFile, $expectedSlug);
+		$result = ZipValidator::validate($tmpFile, $expectedSlug);
 		if (!$result->isValid()) {
-			throw new RuntimeException(
+			throw new \RuntimeException(
 				'Invalid package: ' . implode('; ', $result->getErrors())
 			);
 		}
 
-		$packageInfo = WshWordPressPackageParser::parsePackage($tmpFile);
+		$packageInfo = \WshWordPressPackageParser::parsePackage($tmpFile);
 		if ($packageInfo === false) {
-			throw new RuntimeException('Could not parse package metadata.');
+			throw new \RuntimeException('Could not parse package metadata.');
 		}
 
 		$slug = $this->detectSlug($packageInfo, $expectedSlug);
 		$version = $packageInfo['header']['Version'] ?? null;
 		if (empty($version)) {
-			throw new RuntimeException('Package does not contain a version header.');
+			throw new \RuntimeException('Package does not contain a version header.');
 		}
 
 		$targetDir = $this->packageDirectory . '/' . $slug . '/' . $version;
 		if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true)) {
-			throw new RuntimeException('Failed to create directory: ' . $targetDir);
+			throw new \RuntimeException('Failed to create directory: ' . $targetDir);
 		}
 
 		$targetPath = $targetDir . '/' . $slug . '.zip';
 
 		if (!move_uploaded_file($tmpFile, $targetPath)) {
-			throw new RuntimeException('Failed to move uploaded file to target location.');
+			throw new \RuntimeException('Failed to move uploaded file to target location.');
 		}
 
-		if ($this->cache instanceof Wpup_FileCache) {
+		if ($this->cache instanceof FileCache) {
 			$this->cache->clearBySlug($slug);
 		}
 
-		$package = Wpup_Package::fromArchive($targetPath, $slug, $this->cache);
+		$package = Package::fromArchive($targetPath, $slug, $this->cache);
 
 		return [
 			'slug'     => $slug,
@@ -137,7 +135,7 @@ class Wpup_UploadHandler {
 
 	private function validateUploadedFile(array $fileInfo): void {
 		if (!isset($fileInfo['error'])) {
-			throw new RuntimeException('No file was uploaded.');
+			throw new \RuntimeException('No file was uploaded.');
 		}
 
 		if ($fileInfo['error'] !== UPLOAD_ERR_OK) {
@@ -150,11 +148,11 @@ class Wpup_UploadHandler {
 				UPLOAD_ERR_CANT_WRITE => 'Failed to write the uploaded file to disk.',
 				default              => 'Unknown upload error (code ' . $fileInfo['error'] . ').',
 			};
-			throw new RuntimeException($message);
+			throw new \RuntimeException($message);
 		}
 
 		if (!is_uploaded_file($fileInfo['tmp_name'])) {
-			throw new RuntimeException('Invalid upload.');
+			throw new \RuntimeException('Invalid upload.');
 		}
 	}
 
@@ -165,7 +163,7 @@ class Wpup_UploadHandler {
 
 		$mainFile = $packageInfo['pluginFile'] ?? $packageInfo['stylesheet'] ?? null;
 		if ($mainFile === null) {
-			throw new RuntimeException('Could not determine package slug.');
+			throw new \RuntimeException('Could not determine package slug.');
 		}
 
 		return basename(dirname(strtolower($mainFile)));

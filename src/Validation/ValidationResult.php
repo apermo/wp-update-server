@@ -1,6 +1,10 @@
 <?php
 
-class Wpup_ValidationResult {
+declare(strict_types=1);
+
+namespace Apermo\WpUpdateServer\Validation;
+
+class ValidationResult {
 
 	private array $errors;
 

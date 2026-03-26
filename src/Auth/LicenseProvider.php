@@ -1,6 +1,10 @@
 <?php
 
-interface Wpup_LicenseProvider {
+declare(strict_types=1);
+
+namespace Apermo\WpUpdateServer\Auth;
+
+interface LicenseProvider {
 
 	/**
 	 * Validate a license key for a given package slug.

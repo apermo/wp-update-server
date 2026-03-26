@@ -1,6 +1,10 @@
 <?php
 
-class Wpup_VersionUtils {
+declare(strict_types=1);
+
+namespace Apermo\WpUpdateServer;
+
+class VersionUtils {
 
 	public const STABILITY_ALPHA  = 0;
 	public const STABILITY_BETA   = 1;
@@ -41,12 +45,6 @@ class Wpup_VersionUtils {
 
 	/**
 	 * Check if a version is eligible for a given stability channel.
-	 *
-	 * A channel includes all versions at its stability level or higher:
-	 * - 'stable': only stable releases
-	 * - 'rc': stable + release candidates
-	 * - 'beta': stable + rc + beta
-	 * - 'alpha': everything
 	 */
 	public static function matchesChannel(string $version, string $channel): bool {
 		$versionRank = self::getStabilityRank(self::parseStability($version));
