@@ -33,5 +33,17 @@
 	},
 	"suggest": {
 		"ext-mbstring": "Used for escaping log values in a utf8 compatible manner. If the extension isn't installed logged values are handled as single-byte character strings."
+	},
+	"require-dev": {
+		"apermo/apermo-coding-standards": "^2.0"
+	},
+	"scripts": {
+		"cs": "phpcs",
+		"cs:fix": "phpcbf"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
 	}
 }
