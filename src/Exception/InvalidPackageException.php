@@ -4,5 +4,10 @@ declare(strict_types=1);
 
 namespace Apermo\WpUpdateServer\Exception;
 
-class InvalidPackageException extends \RuntimeException {
+use RuntimeException;
+
+/**
+ * Thrown when a ZIP archive does not contain a valid WordPress plugin or theme.
+ */
+class InvalidPackageException extends RuntimeException {
 }

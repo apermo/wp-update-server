@@ -14,18 +14,25 @@ namespace Apermo\WpUpdateServer\Cache;
  */
 class FileCache implements CacheInterface {
 
+	/** @var string Filesystem path to the cache directory. */
 	protected string $cacheDirectory;
 
-	public function __construct(string $cacheDirectory) {
+	/**
+	 * @param string $cacheDirectory Filesystem path to the cache directory.
+	 */
+	public function __construct( string $cacheDirectory ) {
 		$this->cacheDirectory = $cacheDirectory;
 	}
 
-	public function get(string $key): mixed {
-		$filename = $this->getCacheFilename($key);
-		if (is_file($filename) && is_readable($filename)) {
-			$cache = unserialize(base64_decode(file_get_contents($filename)));
-			if ($cache['expiration_time'] < time()) {
-				$this->clear($key);
+	/**
+	 * {@inheritDoc}
+	 */
+	public function get( string $key ): mixed {
+		$filename = $this->getCacheFilename( $key );
+		if ( \is_file( $filename ) && \is_readable( $filename ) ) {
+			$cache = \unserialize( \base64_decode( \file_get_contents( $filename ) ) );
+			if ( $cache['expiration_time'] < \time() ) {
+				$this->clear( $key );
 				return null;
 			}
 			return $cache['value'];
@@ -33,29 +40,45 @@ class FileCache implements CacheInterface {
 		return null;
 	}
 
-	public function set(string $key, mixed $value, int $expiration = 0): void {
+	/**
+	 * {@inheritDoc}
+	 */
+	public function set( string $key, mixed $value, int $expiration = 0 ): void {
 		$cache = [
-			'expiration_time' => time() + $expiration,
+			'expiration_time' => \time() + $expiration,
 			'value' => $value,
 		];
-		file_put_contents($this->getCacheFilename($key), base64_encode(serialize($cache)));
+		\file_put_contents( $this->getCacheFilename( $key ), \base64_encode( \serialize( $cache ) ) );
 	}
 
-	protected function getCacheFilename(string $key): string {
+	/**
+	 * Build the filesystem path for a given cache key.
+	 *
+	 * @param string $key Cache key.
+	 */
+	protected function getCacheFilename( string $key ): string {
 		return $this->cacheDirectory . '/' . $key . '.txt';
 	}
 
-	public function clear(string $key): void {
-		$file = $this->getCacheFilename($key);
-		if (is_file($file)) {
-			@unlink($file);
+	/**
+	 * {@inheritDoc}
+	 */
+	public function clear( string $key ): void {
+		$file = $this->getCacheFilename( $key );
+		if ( \is_file( $file ) && ! \unlink( $file ) ) {
+			\error_log( 'FileCache: Failed to delete cache file: ' . $file );
 		}
 	}
 
-	public function clearBySlug(string $slug): void {
+	/**
+	 * {@inheritDoc}
+	 */
+	public function clearBySlug( string $slug ): void {
 		$pattern = $this->cacheDirectory . '/metadata-b64-' . $slug . '-*.txt';
-		foreach (glob($pattern, GLOB_NOESCAPE) as $file) {
-			@unlink($file);
+		foreach ( \glob( $pattern, \GLOB_NOESCAPE ) as $file ) {
+			if ( ! \unlink( $file ) ) {
+				\error_log( 'FileCache: Failed to delete cache file: ' . $file );
+			}
 		}
 	}
 }
