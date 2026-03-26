@@ -16,6 +16,7 @@ class Wpup_UpdateServer {
 
 	protected Wpup_Cache $cache;
 	protected Wpup_Config $config;
+	protected Wpup_PackageRepository $packageRepository;
 	protected string $serverUrl;
 	protected float $startTime = 0;
 	protected $packageFileLoader = [Wpup_Package::class, 'fromArchive'];
@@ -49,6 +50,12 @@ class Wpup_UpdateServer {
 
 		$this->cache = new Wpup_FileCache($serverDirectory . '/cache');
 		$this->config = Wpup_Config::fromFile($this->serverDirectory . '/config.php');
+		$this->packageRepository = new Wpup_PackageRepository(
+			$this->packageDirectory,
+			$this->cache,
+			$this->config->get('legacy_flat_packages', false),
+			$this->packageFileLoader,
+		);
 		$this->applyConfig();
 	}
 
@@ -183,20 +190,21 @@ class Wpup_UpdateServer {
 
 	/**
 	 * Load the requested package into the request instance.
-	 *
-	 * @param Wpup_Request $request
 	 */
-	protected function loadPackageFor($request) {
-		if ( empty($request->slug) ) {
+	protected function loadPackageFor(Wpup_Request $request): void {
+		if (empty($request->slug)) {
 			return;
 		}
 
+		$version = $request->param('version');
+		$channel = $request->param('channel', 'stable');
+
 		try {
-			$request->package = $this->findPackage($request->slug);
+			$request->package = $this->findPackage($request->slug, $version, $channel);
 		} catch (Wpup_InvalidPackageException $ex) {
 			$this->exitWithError(sprintf(
-				'Package "%s" exists, but it is not a valid plugin or theme. ' .
-				'Make sure it has the right format (Zip) and directory structure.',
+				'Package "%s" exists, but it is not a valid plugin or theme. '
+				. 'Make sure it has the right format (Zip) and directory structure.',
 				htmlentities($request->slug)
 			));
 			exit;
@@ -293,20 +301,14 @@ class Wpup_UpdateServer {
 	}
 
 	/**
-	 * Find a plugin or theme by slug.
-	 *
-	 * @param string $slug
-	 * @return Wpup_Package A package object or NULL if the plugin/theme was not found.
+	 * Find a plugin or theme by slug, optionally for a specific version and channel.
 	 */
-	protected function findPackage($slug) {
-		//Check if there's a slug.zip file in the package directory.
-		$safeSlug = preg_replace('@[^a-z0-9\-_\.,+!]@i', '', $slug);
-		$filename = $this->packageDirectory . '/' . $safeSlug . '.zip';
-		if ( !is_file($filename) || !is_readable($filename) ) {
-			return null;
-		}
-
-		return call_user_func($this->packageFileLoader, $filename, $slug, $this->cache);
+	protected function findPackage(
+		string $slug,
+		?string $version = null,
+		string $channel = 'stable',
+	): ?Wpup_Package {
+		return $this->packageRepository->findPackage($slug, $version, $channel);
 	}
 
 	/**
@@ -321,15 +323,16 @@ class Wpup_UpdateServer {
 
 	/**
 	 * Create a download URL for a plugin.
-	 *
-	 * @param Wpup_Package $package
-	 * @return string URL
 	 */
-	protected function generateDownloadUrl(Wpup_Package $package) {
-		$query = array(
+	protected function generateDownloadUrl(Wpup_Package $package): string {
+		$query = [
 			'action' => 'download',
 			'slug'   => $package->slug,
-		);
+		];
+		$version = $package->getVersion();
+		if ($version !== null) {
+			$query['version'] = $version;
+		}
 		return self::addQueryArg($query, $this->serverUrl);
 	}
 

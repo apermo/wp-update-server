@@ -85,5 +85,16 @@ class Wpup_FileCache implements Wpup_Cache {
 		}
 	}
 
+	/**
+	 * Clear all cache entries for a given package slug.
+	 */
+	public function clearBySlug(string $slug): void {
+		$pattern = $this->cacheDirectory . '/metadata-b64-' . $slug . '-*.txt';
+		foreach (glob($pattern, GLOB_NOESCAPE) as $file) {
+			//phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_unlink
+			@unlink($file);
+		}
+	}
+
 	//phpcs:enable
 }

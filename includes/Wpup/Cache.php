@@ -28,4 +28,9 @@ interface Wpup_Cache {
 	 * @return void
 	 */
 	function clear($key);
+
+	/**
+	 * Clear all cache entries for a given package slug.
+	 */
+	function clearBySlug(string $slug): void;
 }

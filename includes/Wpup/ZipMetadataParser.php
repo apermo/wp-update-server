@@ -126,6 +126,7 @@ class Wpup_ZipMetadataParser {
 			$this->setInfoFromReadme();
 			$this->setLastUpdateDate();
 			$this->setSlug();
+			$this->metadata['type'] = $this->packageInfo['type'] ?? 'plugin';
 		} else {
 			throw new Wpup_InvalidPackageException( sprintf('The specified file %s does not contain a valid WordPress plugin or theme.', $this->filename));
 		}

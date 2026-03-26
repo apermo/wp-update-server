@@ -91,4 +91,11 @@ class Wpup_Package {
 	public function getLastModified() {
 		return filemtime($this->filename);
 	}
+
+	/**
+	 * Get the version string from the package metadata.
+	 */
+	public function getVersion(): ?string {
+		return $this->metadata['version'] ?? null;
+	}
 }
