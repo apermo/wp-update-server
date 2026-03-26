@@ -188,8 +188,13 @@ class Wpup_UpdateServer {
 		return new Wpup_Request($query, $headers, $clientIp, $httpMethod);
 	}
 
+	private const VALID_CHANNELS = ['stable', 'rc', 'beta', 'alpha'];
+
 	/**
 	 * Load the requested package into the request instance.
+	 *
+	 * Supports ?version=x.y.z for a specific version and ?channel=stable|rc|beta|alpha
+	 * for pre-release filtering. Default channel is 'stable'.
 	 */
 	protected function loadPackageFor(Wpup_Request $request): void {
 		if (empty($request->slug)) {
@@ -198,6 +203,13 @@ class Wpup_UpdateServer {
 
 		$version = $request->param('version');
 		$channel = $request->param('channel', 'stable');
+
+		if (!in_array($channel, self::VALID_CHANNELS, true)) {
+			$this->exitWithError(
+				'Invalid channel. Must be one of: ' . implode(', ', self::VALID_CHANNELS),
+				400,
+			);
+		}
 
 		try {
 			$request->package = $this->findPackage($request->slug, $version, $channel);
