@@ -5,3 +5,4 @@
 /.github export-ignore
 /phpcs.xml export-ignore
 /CLAUDE.md export-ignore
+/.ddev export-ignore
