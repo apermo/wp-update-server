@@ -22,7 +22,7 @@ class ZipMetadataParser {
 	public static int $cacheTime = 604800;
 
 	/**
-	 * @var array<string, string> Map of plugin/theme header keys to metadata field names.
+	 * string> Map of plugin/theme header keys to metadata field names.
 	 *
 	 * @var array
 	 */
@@ -40,7 +40,7 @@ class ZipMetadataParser {
 	];
 
 	/**
-	 * @var string[] Readme fields to copy directly into metadata.
+	 * Readme fields to copy directly into metadata.
 	 *
 	 * @var array
 	 */
@@ -54,28 +54,28 @@ class ZipMetadataParser {
 	protected array|bool $packageInfo;
 
 	/**
-	 * @var string Absolute path to the ZIP archive being parsed.
+	 * Absolute path to the ZIP archive being parsed.
 	 *
 	 * @var string
 	 */
 	protected string $filename;
 
 	/**
-	 * @var string|null Package slug identifier.
+	 * Package slug identifier.
 	 *
 	 * @var ?string
 	 */
 	protected ?string $slug;
 
 	/**
-	 * @var CacheInterface|null Cache backend for storing parsed metadata.
+	 * Cache backend for storing parsed metadata.
 	 *
 	 * @var ?CacheInterface
 	 */
 	protected ?CacheInterface $cache;
 
 	/**
-	 * @var array|null Parsed and normalized package metadata.
+	 * Parsed and normalized package metadata.
 	 *
 	 * @var ?array
 	 */

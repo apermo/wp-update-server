@@ -16,16 +16,32 @@ use DirectoryIterator;
  */
 class PackageRepository {
 
-	/** @var string Base directory containing package directories. */
+	/**
+	 * Base directory containing package directories.
+	 *
+	 * @var string
+	 */
 	protected string $packageDirectory;
 
-	/** @var CacheInterface|null Optional metadata cache. */
+	/**
+	 * Optional metadata cache.
+	 *
+	 * @var ?CacheInterface
+	 */
 	protected ?CacheInterface $cache;
 
-	/** @var bool Whether to fall back to legacy packages/{slug}.zip layout. */
+	/**
+	 * Whether to fall back to legacy packages/{slug}.zip layout.
+	 *
+	 * @var bool
+	 */
 	protected bool $legacyFlatEnabled;
 
-	/** @var callable Factory callable for creating Package instances from ZIP files. */
+	/**
+	 * Factory callable for creating Package instances from ZIP files.
+	 *
+	 * @var mixed
+	 */
 	protected $packageFileLoader;
 
 	/**

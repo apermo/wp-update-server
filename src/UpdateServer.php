@@ -223,7 +223,7 @@ class UpdateServer {
 			if ( ( $_SERVER['HTTPS'] == '1' ) || ( \strtolower( $_SERVER['HTTPS'] ) === 'on' ) ) {
 				return true;
 			}
-		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && ( '443' == $_SERVER['SERVER_PORT'] ) ) {
+		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] == '443' ) {
 			return true;
 		}
 

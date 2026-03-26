@@ -15,13 +15,25 @@ namespace Apermo\WpUpdateServer;
  */
 class ComposerEndpoint {
 
-	/** @var PackageRepository Package source for listing slugs and versions. */
+	/**
+	 * Package source for listing slugs and versions.
+	 *
+	 * @var PackageRepository
+	 */
 	private PackageRepository $repository;
 
-	/** @var string Base URL of the update server. */
+	/**
+	 * Base URL of the update server.
+	 *
+	 * @var string
+	 */
 	private string $serverUrl;
 
-	/** @var string Composer vendor prefix (e.g. 'apermo'). */
+	/**
+	 * Composer vendor prefix (e.g. 'apermo').
+	 *
+	 * @var string
+	 */
 	private string $vendorPrefix;
 
 	/**

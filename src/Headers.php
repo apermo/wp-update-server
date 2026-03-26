@@ -31,7 +31,11 @@ class Headers implements ArrayAccess, IteratorAggregate, Countable {
 		'AUTH_TYPE',
 	];
 
-	/** @var array<string, string> Normalized header name => value pairs. */
+	/**
+	 * string> Normalized header name => value pairs.
+	 *
+	 * @var array
+	 */
 	protected array $headers = [];
 
 	/**

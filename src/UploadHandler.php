@@ -16,14 +16,14 @@ use WshWordPressPackageParser;
 class UploadHandler {
 
 	/**
-	 * @var string Absolute path to the directory where packages are stored.
+	 * Absolute path to the directory where packages are stored.
 	 *
 	 * @var string
 	 */
 	private string $packageDirectory;
 
 	/**
-	 * @var CacheInterface|null Cache backend for invalidating metadata after upload.
+	 * Cache backend for invalidating metadata after upload.
 	 *
 	 * @var ?CacheInterface
 	 */

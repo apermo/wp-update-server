@@ -12,34 +12,74 @@ namespace Apermo\WpUpdateServer;
  */
 class Request {
 
-	/** @var array<string, mixed> Query parameters from the request. */
+	/**
+	 * mixed> Query parameters from the request.
+	 *
+	 * @var array
+	 */
 	public array $query = [];
 
-	/** @var string Client IP address. */
+	/**
+	 * Client IP address.
+	 *
+	 * @var string
+	 */
 	public string $clientIp;
 
-	/** @var string HTTP method (GET, POST, etc.). */
+	/**
+	 * HTTP method (GET, POST, etc.).
+	 *
+	 * @var string
+	 */
 	public string $httpMethod;
 
-	/** @var string Sanitized action name from query parameters. */
+	/**
+	 * Sanitized action name from query parameters.
+	 *
+	 * @var string
+	 */
 	public string $action;
 
-	/** @var string Sanitized package slug from query parameters. */
+	/**
+	 * Sanitized package slug from query parameters.
+	 *
+	 * @var string
+	 */
 	public string $slug;
 
-	/** @var Package|null The resolved package for this request. */
+	/**
+	 * The resolved package for this request.
+	 *
+	 * @var ?Package
+	 */
 	public ?Package $package = null;
 
-	/** @var Headers Parsed HTTP headers. */
+	/**
+	 * Parsed HTTP headers.
+	 *
+	 * @var Headers
+	 */
 	public Headers $headers;
 
-	/** @var string|null WordPress version extracted from the User-Agent header. */
+	/**
+	 * WordPress version extracted from the User-Agent header.
+	 *
+	 * @var ?string
+	 */
 	public ?string $wpVersion = null;
 
-	/** @var string|null WordPress site URL extracted from the User-Agent header. */
+	/**
+	 * WordPress site URL extracted from the User-Agent header.
+	 *
+	 * @var ?string
+	 */
 	public ?string $wpSiteUrl = null;
 
-	/** @var array<string, mixed> Dynamic properties for extensibility. */
+	/**
+	 * mixed> Dynamic properties for extensibility.
+	 *
+	 * @var array
+	 */
 	protected array $props = [];
 
 	/**

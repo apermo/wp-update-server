@@ -11,13 +11,25 @@ use Apermo\WpUpdateServer\Cache\CacheInterface;
  */
 class Package {
 
-	/** @var string|null Filesystem path to the package ZIP file. */
+	/**
+	 * Filesystem path to the package ZIP file.
+	 *
+	 * @var ?string
+	 */
 	protected ?string $filename;
 
-	/** @var array<string, mixed> Parsed metadata from the package header and readme. */
+	/**
+	 * mixed> Parsed metadata from the package header and readme.
+	 *
+	 * @var array
+	 */
 	protected array $metadata = [];
 
-	/** @var string Package slug derived from the top-level directory name. */
+	/**
+	 * Package slug derived from the top-level directory name.
+	 *
+	 * @var string
+	 */
 	public string $slug;
 
 	/**
@@ -34,9 +46,9 @@ class Package {
 	/**
 	 * Load package information from a zip archive.
 	 *
-	 * @param string               $filename Path to the ZIP file.
-	 * @param string|null          $slug     Expected package slug.
-	 * @param CacheInterface|null  $cache    Optional metadata cache.
+	 * @param string              $filename Path to the ZIP file.
+	 * @param string|null         $slug     Expected package slug.
+	 * @param CacheInterface|null $cache    Optional metadata cache.
 	 */
 	public static function fromArchive( string $filename, ?string $slug = null, ?CacheInterface $cache = null ): self {
 		$metaObj = new ZipMetadataParser( $slug, $filename, $cache );

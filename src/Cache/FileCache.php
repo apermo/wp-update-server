@@ -15,7 +15,7 @@ namespace Apermo\WpUpdateServer\Cache;
 class FileCache implements CacheInterface {
 
 	/**
-	 * @var string Filesystem path to the cache directory.
+	 * Filesystem path to the cache directory.
 	 *
 	 * @var string
 	 */
@@ -29,7 +29,9 @@ class FileCache implements CacheInterface {
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Get a cached value by key, returning null if expired or missing.
+	 *
+	 * @param string $key Cache key.
 	 */
 	public function get( string $key ): mixed {
 		$filename = $this->getCacheFilename( $key );
@@ -45,7 +47,11 @@ class FileCache implements CacheInterface {
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Store a value in the cache with an optional expiration time.
+	 *
+	 * @param string $key        Cache key.
+	 * @param mixed  $value      Value to cache.
+	 * @param int    $expiration Time until expiration in seconds. 0 means no expiration.
 	 */
 	public function set( string $key, mixed $value, int $expiration = 0 ): void {
 		$cache = [
@@ -65,7 +71,9 @@ class FileCache implements CacheInterface {
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Delete a single cache entry.
+	 *
+	 * @param string $key Cache key to remove.
 	 */
 	public function clear( string $key ): void {
 		$file = $this->getCacheFilename( $key );
@@ -75,7 +83,9 @@ class FileCache implements CacheInterface {
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Delete all cached metadata entries for a given package slug.
+	 *
+	 * @param string $slug Package slug whose cache entries should be removed.
 	 */
 	public function clearBySlug( string $slug ): void {
 		$pattern = $this->cacheDirectory . '/metadata-b64-' . $slug . '-*.txt';
