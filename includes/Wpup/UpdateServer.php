@@ -223,36 +223,64 @@ class Wpup_UpdateServer {
 		}
 	}
 
+	/** Actions that do not require a package slug. */
+	private const SLUG_OPTIONAL_ACTIONS = ['composer_packages', 'upload'];
+
 	/**
 	 * Basic request validation. Every request must specify an action and a valid package slug.
-	 *
-	 * @param Wpup_Request $request
 	 */
 	protected function validateRequest($request) {
-		if ( $request->action === '' ) {
+		if ($request->action === '') {
 			$this->exitWithError('You must specify an action.', 400);
 		}
-		if ( $request->slug === '' ) {
+		if (in_array($request->action, self::SLUG_OPTIONAL_ACTIONS, true)) {
+			return;
+		}
+		if ($request->slug === '') {
 			$this->exitWithError('You must specify a package slug.', 400);
 		}
-		if ( $request->package === null ) {
+		if ($request->package === null) {
 			$this->exitWithError('Package not found', 404);
 		}
 	}
 
 	/**
 	 * Run the requested action.
-	 *
-	 * @param Wpup_Request $request
 	 */
 	protected function dispatch($request) {
-		if ( $request->action === 'get_metadata' ) {
-			$this->actionGetMetadata($request);
-		} else if ( $request->action === 'download' ) {
-			$this->actionDownload($request);
-		} else {
-			$this->exitWithError(sprintf('Invalid action "%s".', htmlentities($request->action)), 400);
-		}
+		match ($request->action) {
+			'get_metadata'      => $this->actionGetMetadata($request),
+			'download'          => $this->actionDownload($request),
+			'composer_packages' => $this->actionComposerPackages($request),
+			'upload'            => $this->actionUpload($request),
+			default             => $this->exitWithError(
+				sprintf('Invalid action "%s".', htmlentities($request->action)),
+				400,
+			),
+		};
+	}
+
+	/**
+	 * Serve a Composer-compatible packages.json response.
+	 */
+	protected function actionComposerPackages(Wpup_Request $request): void {
+		$endpoint = new Wpup_ComposerEndpoint(
+			$this->packageRepository,
+			$this->serverUrl,
+			$this->config->get('vendor_prefix', 'wpup'),
+		);
+
+		$this->outputAsJson($endpoint->generatePackagesJson());
+		exit;
+	}
+
+	/**
+	 * Handle a package upload via HTTP POST.
+	 *
+	 * Stub — implemented in the upload API feature.
+	 */
+	protected function actionUpload(Wpup_Request $request): void {
+		$this->exitWithError('Upload API is not configured.', 501);
 	}
 
 	/**
