@@ -7,5 +7,9 @@ logs/*.log
 /config.php
 /licenses.json
 
+# Build artifacts
+.phpunit.cache/
+vendor/
+
 # Ignore the entire IDEA/PhpStorm directory
 .idea/
