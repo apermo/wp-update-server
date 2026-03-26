@@ -21,7 +21,11 @@ class ZipMetadataParser {
 	 */
 	public static int $cacheTime = 604800;
 
-	/** @var array<string, string> Map of plugin/theme header keys to metadata field names. */
+	/**
+	 * @var array<string, string> Map of plugin/theme header keys to metadata field names.
+	 *
+	 * @var array
+	 */
 	protected array $headerMap = [
 		'Name' => 'name',
 		'Version' => 'version',
@@ -35,7 +39,11 @@ class ZipMetadataParser {
 		'Provides' => 'provides',
 	];
 
-	/** @var string[] Readme fields to copy directly into metadata. */
+	/**
+	 * @var string[] Readme fields to copy directly into metadata.
+	 *
+	 * @var array
+	 */
 	protected array $readmeMap = [
 		'requires',
 		'tested',
@@ -45,16 +53,32 @@ class ZipMetadataParser {
 	/** @var array|bool Raw parsed package data from WshWordPressPackageParser. */
 	protected array|bool $packageInfo;
 
-	/** @var string Absolute path to the ZIP archive being parsed. */
+	/**
+	 * @var string Absolute path to the ZIP archive being parsed.
+	 *
+	 * @var string
+	 */
 	protected string $filename;
 
-	/** @var string|null Package slug identifier. */
+	/**
+	 * @var string|null Package slug identifier.
+	 *
+	 * @var ?string
+	 */
 	protected ?string $slug;
 
-	/** @var CacheInterface|null Cache backend for storing parsed metadata. */
+	/**
+	 * @var CacheInterface|null Cache backend for storing parsed metadata.
+	 *
+	 * @var ?CacheInterface
+	 */
 	protected ?CacheInterface $cache;
 
-	/** @var array|null Parsed and normalized package metadata. */
+	/**
+	 * @var array|null Parsed and normalized package metadata.
+	 *
+	 * @var ?array
+	 */
 	protected ?array $metadata = null;
 
 	/**
