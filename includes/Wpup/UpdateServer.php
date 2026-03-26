@@ -277,10 +277,87 @@ class Wpup_UpdateServer {
 	/**
 	 * Handle a package upload via HTTP POST.
 	 *
-	 * Stub — implemented in the upload API feature.
+	 * Requires a valid API key from config upload.api_keys.
 	 */
 	protected function actionUpload(Wpup_Request $request): void {
-		$this->exitWithError('Upload API is not configured.', 501);
+		if ($request->httpMethod !== 'POST') {
+			$this->exitWithError('Upload requires POST method.', 405);
+		}
+
+		$this->authenticateUploadRequest($request);
+
+		if (empty($_FILES['package'])) {
+			$this->exitWithError('No package file uploaded.', 400);
+		}
+
+		$maxSize = $this->config->get('upload.max_size', 50 * 1024 * 1024);
+		if (isset($_FILES['package']['size']) && $_FILES['package']['size'] > $maxSize) {
+			$this->exitWithError('File exceeds maximum upload size.', 413);
+		}
+
+		$handler = new Wpup_UploadHandler($this->packageDirectory, $this->cache);
+		$force = $request->param('force') === '1';
+
+		try {
+			if ($force) {
+				$result = $handler->handleForceUpload($_FILES['package'], $request->param('slug'));
+			} else {
+				$result = $handler->handleUpload($_FILES['package'], $request->param('slug'));
+			}
+
+			$this->outputAsJson([
+				'success'  => true,
+				'slug'     => $result['slug'],
+				'version'  => $result['version'],
+				'metadata' => $result['metadata'],
+			]);
+		} catch (RuntimeException $ex) {
+			$statusCode = str_contains($ex->getMessage(), 'already exists') ? 409 : 400;
+			$this->exitWithError(htmlentities($ex->getMessage()), $statusCode);
+		}
+		exit;
+	}
+
+	/**
+	 * Authenticate an upload request against configured API keys.
+	 */
+	protected function authenticateUploadRequest(Wpup_Request $request): void {
+		$apiKeys = $this->config->get('upload.api_keys', []);
+		if (empty($apiKeys)) {
+			$this->exitWithError('Upload API is not configured.', 403);
+		}
+
+		$key = $this->extractBearerToken($request);
+		if ($key === null) {
+			$this->exitWithError('Missing API key. Use Authorization: Bearer header.', 401);
+		}
+
+		if (!isset($apiKeys[$key])) {
+			$this->exitWithError('Invalid API key.', 403);
+		}
+
+		// Check slug scoping.
+		$slug = $request->param('slug');
+		$keyConfig = $apiKeys[$key];
+		$allowedSlugs = $keyConfig['allowed_slugs'] ?? ['*'];
+
+		if ($slug !== null
+			&& !in_array('*', $allowedSlugs, true)
+			&& !in_array($slug, $allowedSlugs, true)
+		) {
+			$this->exitWithError('API key is not authorized for this package.', 403);
+		}
+	}
+
+	/**
+	 * Extract a Bearer token from the Authorization header.
+	 */
+	protected function extractBearerToken(Wpup_Request $request): ?string {
+		$authHeader = $request->headers->get('Authorization', '');
+		if (stripos($authHeader, 'Bearer ') === 0) {
+			return trim(substr($authHeader, 7));
+		}
+		return null;
 	}
 
 	/**
