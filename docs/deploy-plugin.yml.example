@@ -1,0 +1,142 @@
+name: Deploy Plugin to Update Server
+
+on:
+  workflow_call:
+    inputs:
+      plugin-slug:
+        description: "The plugin/theme slug (must match the top-level directory in the zip)"
+        required: true
+        type: string
+      server-url:
+        description: "Base URL of the WP Update Server"
+        required: true
+        type: string
+      build-command:
+        description: "Optional build command to run before packaging (e.g. 'composer install --no-dev')"
+        required: false
+        type: string
+        default: ""
+      php-version:
+        description: "PHP version for the build environment"
+        required: false
+        type: string
+        default: "8.2"
+      node-version:
+        description: "Node.js version (only used if build-command references npm/node)"
+        required: false
+        type: string
+        default: ""
+      dist-ignore-file:
+        description: "Path to a file listing patterns to exclude from the archive (like .gitattributes export-ignore)"
+        required: false
+        type: string
+        default: ".distignore"
+      force-overwrite:
+        description: "Set to 'true' to overwrite an existing version on the server"
+        required: false
+        type: string
+        default: "false"
+    secrets:
+      api-key:
+        description: "API key for the update server upload endpoint"
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php-version }}
+          extensions: zip
+
+      - name: Setup Node.js
+        if: inputs.node-version != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Run build command
+        if: inputs.build-command != ''
+        run: ${{ inputs.build-command }}
+
+      - name: Determine version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Detected version: ${VERSION}"
+
+      - name: Create plugin archive
+        run: |
+          SLUG="${{ inputs.plugin-slug }}"
+          BUILD_DIR="/tmp/build/${SLUG}"
+          mkdir -p "${BUILD_DIR}"
+
+          # Use .distignore if present, otherwise use sensible defaults.
+          IGNORE_FILE="${{ inputs.dist-ignore-file }}"
+          if [ -f "${IGNORE_FILE}" ]; then
+            rsync -av --exclude-from="${IGNORE_FILE}" ./ "${BUILD_DIR}/"
+          else
+            rsync -av \
+              --exclude='.git' \
+              --exclude='.github' \
+              --exclude='node_modules' \
+              --exclude='.distignore' \
+              --exclude='tests' \
+              --exclude='test' \
+              --exclude='.phpcs.xml' \
+              --exclude='phpcs.xml' \
+              --exclude='phpunit.xml' \
+              --exclude='phpunit.xml.dist' \
+              ./ "${BUILD_DIR}/"
+          fi
+
+          cd /tmp/build
+          zip -r "/tmp/${SLUG}.zip" "${SLUG}/"
+          echo "Archive created: /tmp/${SLUG}.zip"
+          echo "Archive size: $(du -h /tmp/${SLUG}.zip | cut -f1)"
+
+      - name: Validate archive structure
+        run: |
+          SLUG="${{ inputs.plugin-slug }}"
+          ENTRIES=$(zipinfo -1 "/tmp/${SLUG}.zip" | head -20)
+
+          if ! echo "${ENTRIES}" | grep -q "^${SLUG}/"; then
+            echo "::error::Archive does not contain expected top-level directory '${SLUG}/'"
+            exit 1
+          fi
+          echo "Archive structure validated."
+
+      - name: Upload to update server
+        run: |
+          SLUG="${{ inputs.plugin-slug }}"
+          URL="${{ inputs.server-url }}"
+          FORCE=""
+          if [ "${{ inputs.force-overwrite }}" = "true" ]; then
+            FORCE="&force=1"
+          fi
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.api-key }}" \
+            -F "package=@/tmp/${SLUG}.zip" \
+            -F "slug=${SLUG}" \
+            "${URL}/?action=upload${FORCE}")
+
+          HTTP_CODE=$(echo "${RESPONSE}" | tail -1)
+          BODY=$(echo "${RESPONSE}" | sed '$d')
+
+          echo "Response: ${BODY}"
+          echo "HTTP Status: ${HTTP_CODE}"
+
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "::error::Upload failed with HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+
+          echo "Successfully deployed ${SLUG} v${{ steps.version.outputs.version }}"

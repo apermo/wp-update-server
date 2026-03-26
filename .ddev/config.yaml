@@ -1,0 +1,7 @@
+name: wp-update-server
+type: php
+docroot: .
+php_version: "8.2"
+webserver_type: apache-fpm
+disable_settings_management: true
+omit_containers: [db]
