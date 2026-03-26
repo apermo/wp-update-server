@@ -35,15 +35,21 @@
 		"ext-mbstring": "Used for escaping log values in a utf8 compatible manner. If the extension isn't installed logged values are handled as single-byte character strings."
 	},
 	"require-dev": {
-		"apermo/apermo-coding-standards": "^2.0"
+		"apermo/apermo-coding-standards": "^2.0",
+		"phpstan/phpstan": "^2.0",
+		"phpstan/extension-installer": "^1.4",
+		"phpstan/phpstan-deprecation-rules": "^2.0",
+		"phpstan/phpstan-strict-rules": "^2.0"
 	},
 	"scripts": {
 		"cs": "phpcs",
-		"cs:fix": "phpcbf"
+		"cs:fix": "phpcbf",
+		"analyse": "phpstan analyse --memory-limit=512M"
 	},
 	"config": {
 		"allow-plugins": {
-			"dealerdirect/phpcodesniffer-composer-installer": true
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"phpstan/extension-installer": true
 		}
 	}
 }
