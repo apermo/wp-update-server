@@ -4,6 +4,7 @@ logs/*.log
 
 # Server configuration (copy config.sample.php)
 /config.php
+/licenses.json
 
 # Ignore the entire IDEA/PhpStorm directory
 .idea/

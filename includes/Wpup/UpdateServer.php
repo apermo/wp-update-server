@@ -312,13 +312,69 @@ class Wpup_UpdateServer {
 	}
 
 	/**
-	 * Stub. You can override this in a subclass to show update info only to
-	 * users with a valid license key (for example).
+	 * Validate license key authorization for the current request.
 	 *
-	 * @param $request
+	 * When auth.require_license is enabled in config, requests must provide a valid
+	 * license key via ?license_key= query param or Authorization: Bearer header.
+	 * Packages listed in auth.public_packages are exempt.
 	 */
 	protected function checkAuthorization($request) {
-		//Stub.
+		if (!$this->config->get('auth.require_license', false)) {
+			return;
+		}
+		if (empty($request->slug)) {
+			return;
+		}
+
+		$publicPackages = $this->config->get('auth.public_packages', []);
+		if (in_array($request->slug, $publicPackages, true)) {
+			return;
+		}
+
+		$provider = $this->getLicenseProvider();
+		if ($provider === null) {
+			return;
+		}
+
+		$key = $this->extractLicenseKey($request);
+		if ($key === null) {
+			$this->exitWithError('A license key is required.', 401);
+		}
+		if (!$provider->validate($key, $request->slug)) {
+			$this->exitWithError('Invalid or expired license key.', 403);
+		}
+	}
+
+	/**
+	 * Extract license key from request query param or Authorization header.
+	 */
+	protected function extractLicenseKey(Wpup_Request $request): ?string {
+		$key = $request->param('license_key');
+		if ($key !== null) {
+			return $key;
+		}
+
+		$authHeader = $request->headers->get('Authorization', '');
+		if (stripos($authHeader, 'Bearer ') === 0) {
+			return trim(substr($authHeader, 7));
+		}
+
+		return null;
+	}
+
+	protected function getLicenseProvider(): ?Wpup_LicenseProvider {
+		$licensesFile = $this->config->get('auth.licenses_file', 'licenses.json');
+
+		// Resolve relative paths from the server directory.
+		if (!str_starts_with($licensesFile, '/')) {
+			$licensesFile = $this->serverDirectory . '/' . $licensesFile;
+		}
+
+		if (!is_file($licensesFile)) {
+			return null;
+		}
+
+		return new Wpup_FileLicenseProvider($licensesFile);
 	}
 
 	/**
