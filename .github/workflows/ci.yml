@@ -1,0 +1,12 @@
+name: CI
+
+on:
+    push:
+        branches: [master]
+    pull_request:
+
+jobs:
+    ci:
+        uses: apermo/reusable-workflows/.github/workflows/ci.yml@main
+        with:
+            php-versions: '["8.2", "8.3", "8.4"]'
