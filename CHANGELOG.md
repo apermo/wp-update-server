@@ -11,29 +11,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 
 ### Added
 
-- Configuration system via `config.php` with `Wpup_Config` class and dot-notation access (#8)
-- Zip structure validation with `Wpup_ZipValidator` for plugin/theme archive verification (#7)
+- Configuration system via `config.php` with dot-notation access (#8)
+- Zip structure validation for plugin/theme archive verification (#7)
 - Multiple versions per package with `packages/{slug}/{version}/{slug}.zip` directory layout (#2)
-- `Wpup_PackageRepository` for version-aware package discovery and resolution
-- `Wpup_VersionUtils` for version comparison and stability parsing
+- Version-aware package discovery and resolution via `PackageRepository`
 - `?version=x.y.z` parameter for requesting specific package versions
 - Pre-release channel support with `?channel=stable|rc|beta|alpha` parameter (#3)
-- License key authentication with pluggable `Wpup_LicenseProvider` interface (#5)
-- File-based license provider (`Wpup_FileLicenseProvider`) reading from `licenses.json`
+- License key authentication with pluggable `LicenseProvider` interface (#5)
+- File-based license provider reading from `licenses.json`
 - Composer repository endpoint via `?action=composer_packages` returning `packages.json` (#1)
 - Authenticated upload API via `POST ?action=upload` with Bearer token authentication (#6)
-- Reusable GitHub Actions workflow for automated plugin deployments (#4)
+- Example GitHub Actions workflow for automated plugin deployments (#4)
 - `config.sample.php` documenting all available configuration options
+- PHPStan level 6 static analysis with baseline
+- PHPCS with Apermo coding standards (WordPress-specific rules excluded)
+- DDEV test environment configuration
 
 ### Changed
 
 - **BREAKING:** Minimum PHP version raised from 5.3 to 8.0
-- Replaced manual `loader.php` requires with `spl_autoload_register` for `Wpup_` classes
+- **BREAKING:** All classes moved to `Apermo\WpUpdateServer` namespace with PSR-4 autoloading (#12)
+- Classes relocated from `includes/Wpup/` to `src/` directory
+- `Wpup_Cache` interface renamed to `Apermo\WpUpdateServer\Cache\CacheInterface` with `clearBySlug()`
+- Replaced manual `loader.php` requires with Composer PSR-4 autoloader (fallback included)
 - Action dispatch now uses `match` expression
 - Package name in `composer.json` changed from `yahnis-elsts/wp-update-server` to
   `apermo/wp-update-server`
 - Download URLs now include version parameter for versioned packages
-- `Wpup_Cache` interface extended with `clearBySlug()` method
 
 ## [2.0.2] - 2024-12-09
 
