@@ -17,6 +17,8 @@ class ValidationResult {
 	private array $errors;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param string[] $errors Validation error messages, empty when valid.
 	 */
 	public function __construct( array $errors = [] ) {

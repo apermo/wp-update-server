@@ -45,6 +45,8 @@ class PackageRepository {
 	protected $packageFileLoader;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param string              $packageDirectory Base path to the packages directory.
 	 * @param CacheInterface|null $cache            Optional metadata cache.
 	 * @param bool                $legacyFlatEnabled Enable legacy flat-file fallback.

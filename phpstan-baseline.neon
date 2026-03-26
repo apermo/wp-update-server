@@ -49,12 +49,6 @@ parameters:
 			path: src/PackageRepository.php
 
 		-
-			message: '#^Binary operation "&" between string\|false and string results in an error\.$#'
-			identifier: binaryOp.invalid
-			count: 2
-			path: src/UpdateServer.php
-
-		-
 			message: '#^Call to function array_filter\(\) requires parameter \#2 to be passed to avoid loose comparison semantics\.$#'
 			identifier: arrayFilter.strict
 			count: 1
@@ -64,12 +58,6 @@ parameters:
 			message: '#^Construct empty\(\) is not allowed\. Use more strict comparison\.$#'
 			identifier: empty.notAllowed
 			count: 9
-			path: src/UpdateServer.php
-
-		-
-			message: '#^Loose comparison via "\=\=" is not allowed\.$#'
-			identifier: equal.notAllowed
-			count: 2
 			path: src/UpdateServer.php
 
 		-
@@ -86,6 +74,12 @@ parameters:
 
 		-
 			message: '#^Strict comparison using \!\=\= between array\<mixed\>\|string and false will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/UpdateServer.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and false will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
 			path: src/UpdateServer.php

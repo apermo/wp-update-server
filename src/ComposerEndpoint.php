@@ -37,6 +37,8 @@ class ComposerEndpoint {
 	private string $vendorPrefix;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param PackageRepository $repository   Package source.
 	 * @param string            $serverUrl    Base URL of the update server.
 	 * @param string            $vendorPrefix Composer vendor prefix.

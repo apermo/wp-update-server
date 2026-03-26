@@ -151,6 +151,8 @@ class UpdateServer {
 	protected string $ip6Mask = '';
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param string|null $serverUrl      Public base URL; auto-detected when null.
 	 * @param string|null $serverDirectory Absolute path to the server root; defaults to parent of src/.
 	 */
@@ -220,10 +222,10 @@ class UpdateServer {
 	 */
 	public static function isSsl(): bool {
 		if ( isset( $_SERVER['HTTPS'] ) ) {
-			if ( ( $_SERVER['HTTPS'] == '1' ) || ( \strtolower( $_SERVER['HTTPS'] ) === 'on' ) ) {
+			if ( ( $_SERVER['HTTPS'] === '1' ) || ( \strtolower( $_SERVER['HTTPS'] ) === 'on' ) ) {
 				return true;
 			}
-		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] == '443' ) {
+		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && (string) $_SERVER['SERVER_PORT'] === '443' ) {
 			return true;
 		}
 
@@ -234,7 +236,7 @@ class UpdateServer {
 	 * Append query arguments to a URL, merging with any existing parameters.
 	 *
 	 * @param array<string, string|null> $args Key-value pairs to add to the query string.
-	 * @param string|null $url  Base URL; defaults to the guessed server URL.
+	 * @param string|null                $url  Base URL; defaults to the guessed server URL.
 	 */
 	protected static function addQueryArg( array $args, ?string $url = null ): string {
 		if ( $url === null ) {
@@ -528,7 +530,7 @@ class UpdateServer {
 	 * Override this method to customize update API responses.
 	 *
 	 * @param array<string, mixed> $meta Package metadata key-value pairs.
-	 * @param Request $request The current API request.
+	 * @param Request              $request The current API request.
 	 * @return array<string, mixed> Filtered metadata.
 	 */
 	protected function filterMetadata( array $meta, Request $request ): array {
@@ -705,9 +707,9 @@ class UpdateServer {
 	/**
 	 * Find the first matching asset file for a package and return its public URL.
 	 *
-	 * @param Package      $package    The package to find an asset for.
-	 * @param string       $assetType  Asset category key (e.g. 'banners', 'icons').
-	 * @param string       $suffix     Filename suffix before the extension (e.g. '-772x250').
+	 * @param Package         $package    The package to find an asset for.
+	 * @param string          $assetType  Asset category key (e.g. 'banners', 'icons').
+	 * @param string          $suffix     Filename suffix before the extension (e.g. '-772x250').
 	 * @param string[]|string $extensions File extension(s) to search for.
 	 */
 	protected function findFirstAsset(
@@ -798,7 +800,10 @@ class UpdateServer {
 
 			$configuredTz = \ini_get( 'date.timezone' );
 			if ( empty( $configuredTz ) ) {
-				\date_default_timezone_set( @\date_default_timezone_get() );
+				$defaultTz = \date_default_timezone_get();
+				if ( $defaultTz !== false ) {
+					\date_default_timezone_set( $defaultTz );
+				}
 			}
 
 			$line = \date( '[Y-m-d H:i:s O]' ) . ' ' . \implode( "\t", $columns ) . "\n";
@@ -830,7 +835,7 @@ class UpdateServer {
 	 * Adjust information that will be logged. Override in subclasses.
 	 *
 	 * @param array<string, string|null> $columns Key-value pairs of log data.
-	 * @param Request|null $request The current API request, if available.
+	 * @param Request|null               $request The current API request, if available.
 	 * @return array<string, string|null> Filtered log columns.
 	 */
 	protected function filterLogInfo( array $columns, ?Request $request = null ): array {
@@ -914,7 +919,9 @@ class UpdateServer {
 		$logFiles = \array_reverse( $logFiles );
 
 		foreach ( \array_slice( $logFiles, $this->logBackupCount ) as $fileName ) {
-			@\unlink( $fileName );
+			if ( \is_file( $fileName ) && ! \unlink( $fileName ) ) {
+				\error_log( 'UpdateServer: Failed to delete rotated log file: ' . $fileName );
+			}
 		}
 	}
 
@@ -931,7 +938,10 @@ class UpdateServer {
 	 * @param string $ip The IP address to anonymize.
 	 */
 	protected function anonymizeIp( string $ip ): string {
-		$binaryIp = @\inet_pton( $ip );
+		$binaryIp = \inet_pton( $ip );
+		if ( $binaryIp === false ) {
+			return $ip;
+		}
 		if ( \strlen( $binaryIp ) === 4 ) {
 			$anonBinaryIp = $binaryIp & $this->ip4Mask;
 		} elseif ( \strlen( $binaryIp ) === 16 ) {

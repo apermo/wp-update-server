@@ -19,6 +19,8 @@ class Config {
 	private array $data;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param array<string, mixed> $data Configuration data.
 	 */
 	public function __construct( array $data = [] ) {

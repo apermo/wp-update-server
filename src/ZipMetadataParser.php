@@ -86,6 +86,8 @@ class ZipMetadataParser {
 	protected ?array $metadata = null;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param string|null         $slug     Package slug identifier.
 	 * @param string              $filename Absolute path to the ZIP archive.
 	 * @param CacheInterface|null $cache    Optional cache backend for metadata.
