@@ -233,7 +233,7 @@ class UpdateServer {
 	/**
 	 * Append query arguments to a URL, merging with any existing parameters.
 	 *
-	 * @param array       $args Key-value pairs to add to the query string.
+	 * @param array<string, string|null> $args Key-value pairs to add to the query string.
 	 * @param string|null $url  Base URL; defaults to the guessed server URL.
 	 */
 	protected static function addQueryArg( array $args, ?string $url = null ): string {
@@ -284,8 +284,8 @@ class UpdateServer {
 	/**
 	 * Process an update API request.
 	 *
-	 * @param array|null $query Query parameters. Defaults to the current GET request parameters.
-	 * @param array|null $headers HTTP headers. Defaults to the headers received for the current request.
+	 * @param array<string, mixed>|null  $query   Query parameters. Defaults to the current GET request parameters.
+	 * @param array<string, string>|null $headers HTTP headers. Defaults to the headers received for the current request.
 	 */
 	public function handleRequest( ?array $query = null, ?array $headers = null ): void {
 		$this->startTime = \microtime( true );
@@ -303,8 +303,8 @@ class UpdateServer {
 	/**
 	 * Build a Request object from the current HTTP environment.
 	 *
-	 * @param array|null $query   Query parameters; defaults to $_GET.
-	 * @param array|null $headers HTTP headers; defaults to the current request headers.
+	 * @param array<string, mixed>|null  $query   Query parameters; defaults to $_GET.
+	 * @param array<string, string>|null $headers HTTP headers; defaults to the current request headers.
 	 */
 	protected function initRequest( ?array $query = null, ?array $headers = null ): Request {
 		if ( $query === null ) {
@@ -527,8 +527,9 @@ class UpdateServer {
 	 *
 	 * Override this method to customize update API responses.
 	 *
-	 * @param array   $meta    Package metadata key-value pairs.
+	 * @param array<string, mixed> $meta Package metadata key-value pairs.
 	 * @param Request $request The current API request.
+	 * @return array<string, mixed> Filtered metadata.
 	 */
 	protected function filterMetadata( array $meta, Request $request ): array {
 		return \array_filter( $meta, static fn( $value ) => $value !== null );
@@ -655,6 +656,7 @@ class UpdateServer {
 	 * Locate banner image URLs (low and high resolution) for a package.
 	 *
 	 * @param Package $package The package to find banners for.
+	 * @return array<string, string>|null Banner URLs keyed by 'low'/'high', or null.
 	 */
 	protected function getBanners( Package $package ): ?array {
 		$smallBanner = $this->findFirstAsset( $package, 'banners', '-772x250' );
@@ -687,6 +689,7 @@ class UpdateServer {
 	 * Locate icon image URLs (1x, 2x, SVG) for a package.
 	 *
 	 * @param Package $package The package to find icons for.
+	 * @return array<string, string>|null Icon URLs keyed by '1x'/'2x'/'svg', or null.
 	 */
 	protected function getIcons( Package $package ): ?array {
 		$icons = [
@@ -705,7 +708,7 @@ class UpdateServer {
 	 * @param Package      $package    The package to find an asset for.
 	 * @param string       $assetType  Asset category key (e.g. 'banners', 'icons').
 	 * @param string       $suffix     Filename suffix before the extension (e.g. '-772x250').
-	 * @param array|string $extensions File extension(s) to search for.
+	 * @param string[]|string $extensions File extension(s) to search for.
 	 */
 	protected function findFirstAsset(
 		Package $package,
@@ -826,8 +829,9 @@ class UpdateServer {
 	/**
 	 * Adjust information that will be logged. Override in subclasses.
 	 *
-	 * @param array        $columns Key-value pairs of log data.
+	 * @param array<string, string|null> $columns Key-value pairs of log data.
 	 * @param Request|null $request The current API request, if available.
+	 * @return array<string, string|null> Filtered log columns.
 	 */
 	protected function filterLogInfo( array $columns, ?Request $request = null ): array {
 		return $columns;

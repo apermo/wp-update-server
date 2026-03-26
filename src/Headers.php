@@ -32,9 +32,9 @@ class Headers implements ArrayAccess, IteratorAggregate, Countable {
 	];
 
 	/**
-	 * string> Normalized header name => value pairs.
+	 * Normalized header name => value pairs.
 	 *
-	 * @var array
+	 * @var array<string, string>
 	 */
 	protected array $headers = [];
 

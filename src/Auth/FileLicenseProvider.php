@@ -22,9 +22,9 @@ namespace Apermo\WpUpdateServer\Auth;
 class FileLicenseProvider implements LicenseProvider {
 
 	/**
-	 * array{packages: string[], expires: string|null}>
+	 * License definitions keyed by license key string.
 	 *
-	 * @var array
+	 * @var array<string, array{packages: string[], expires: string|null}>
 	 */
 	private array $licenses;
 

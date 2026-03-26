@@ -13,9 +13,9 @@ namespace Apermo\WpUpdateServer;
 class Request {
 
 	/**
-	 * mixed> Query parameters from the request.
+	 * Query parameters from the request.
 	 *
-	 * @var array
+	 * @var array<string, mixed>
 	 */
 	public array $query = [];
 
@@ -76,9 +76,9 @@ class Request {
 	public ?string $wpSiteUrl = null;
 
 	/**
-	 * mixed> Dynamic properties for extensibility.
+	 * Dynamic properties for extensibility.
 	 *
-	 * @var array
+	 * @var array<string, mixed>
 	 */
 	protected array $props = [];
 

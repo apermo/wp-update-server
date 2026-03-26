@@ -12,9 +12,9 @@ use RuntimeException;
 class Config {
 
 	/**
-	 * mixed>
+	 * Configuration data.
 	 *
-	 * @var array
+	 * @var array<string, mixed>
 	 */
 	private array $data;
 

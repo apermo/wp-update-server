@@ -54,7 +54,7 @@ class ComposerEndpoint {
 	/**
 	 * Generate the full packages.json response.
 	 *
-	 * @return array Composer repository format with a "packages" key.
+	 * @return array{packages: array<string, array<string, mixed>>} Composer repository format.
 	 */
 	public function generatePackagesJson(): array {
 		$packages = [];

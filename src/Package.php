@@ -19,9 +19,9 @@ class Package {
 	protected ?string $filename;
 
 	/**
-	 * mixed> Parsed metadata from the package header and readme.
+	 * Parsed metadata from the package header and readme.
 	 *
-	 * @var array
+	 * @var array<string, mixed>
 	 */
 	protected array $metadata = [];
 
@@ -35,7 +35,7 @@ class Package {
 	/**
 	 * @param string      $slug     Package slug.
 	 * @param string|null $filename Path to the ZIP archive.
-	 * @param array       $metadata Pre-parsed metadata.
+	 * @param array<string, mixed> $metadata Pre-parsed metadata.
 	 */
 	public function __construct( string $slug, ?string $filename = null, array $metadata = [] ) {
 		$this->slug = $slug;

@@ -41,9 +41,9 @@ class UploadHandler {
 	/**
 	 * Process an uploaded ZIP file.
 	 *
-	 * @param array       $fileInfo The $_FILES entry for the uploaded file.
+	 * @param array<string, mixed> $fileInfo The $_FILES entry for the uploaded file.
 	 * @param string|null $expectedSlug Optional slug to validate against.
-	 * @return array{slug: string, version: string, path: string, metadata: array}
+	 * @return array{slug: string, version: string, path: string, metadata: array<string, mixed>}
 	 * @throws \RuntimeException On validation or filesystem errors.
 	 */
 	public function handleUpload( array $fileInfo, ?string $expectedSlug = null ): array {
@@ -107,9 +107,9 @@ class UploadHandler {
 	/**
 	 * Handle a forced re-upload of an existing version.
 	 *
-	 * @param array       $fileInfo     The $_FILES entry for the uploaded file.
+	 * @param array<string, mixed> $fileInfo The $_FILES entry for the uploaded file.
 	 * @param string|null $expectedSlug Optional slug to validate against.
-	 * @return array{slug: string, version: string, path: string, metadata: array}
+	 * @return array{slug: string, version: string, path: string, metadata: array<string, mixed>}
 	 * @throws \RuntimeException On validation or filesystem errors.
 	 */
 	public function handleForceUpload( array $fileInfo, ?string $expectedSlug = null ): array {
@@ -163,7 +163,7 @@ class UploadHandler {
 	/**
 	 * Validate the PHP file upload entry for errors.
 	 *
-	 * @param array $fileInfo The $_FILES entry for the uploaded file.
+	 * @param array<string, mixed> $fileInfo The $_FILES entry for the uploaded file.
 	 * @throws \RuntimeException When the upload is missing or failed.
 	 */
 	private function validateUploadedFile( array $fileInfo ): void {
@@ -192,7 +192,7 @@ class UploadHandler {
 	/**
 	 * Determine the package slug from the expected value or parsed metadata.
 	 *
-	 * @param array       $packageInfo  Parsed package metadata from WshWordPressPackageParser.
+	 * @param array<string, mixed> $packageInfo Parsed package metadata from WshWordPressPackageParser.
 	 * @param string|null $expectedSlug Explicit slug override, if provided.
 	 * @throws \RuntimeException When the slug cannot be determined.
 	 */

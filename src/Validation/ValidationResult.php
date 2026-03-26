@@ -10,9 +10,9 @@ namespace Apermo\WpUpdateServer\Validation;
 class ValidationResult {
 
 	/**
-	 * @var string[]
+	 * Validation error messages, empty when valid.
 	 *
-	 * @var array
+	 * @var string[]
 	 */
 	private array $errors;
 

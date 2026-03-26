@@ -22,9 +22,9 @@ class ZipMetadataParser {
 	public static int $cacheTime = 604800;
 
 	/**
-	 * string> Map of plugin/theme header keys to metadata field names.
+	 * Map of plugin/theme header keys to metadata field names.
 	 *
-	 * @var array
+	 * @var array<string, string>
 	 */
 	protected array $headerMap = [
 		'Name' => 'name',
@@ -42,7 +42,7 @@ class ZipMetadataParser {
 	/**
 	 * Readme fields to copy directly into metadata.
 	 *
-	 * @var array
+	 * @var string[]
 	 */
 	protected array $readmeMap = [
 		'requires',
@@ -50,7 +50,11 @@ class ZipMetadataParser {
 		'requires_php',
 	];
 
-	/** @var array|bool Raw parsed package data from WshWordPressPackageParser. */
+	/**
+	 * Raw parsed package data from WshWordPressPackageParser.
+	 *
+	 * @var array<string, mixed>|bool
+	 */
 	protected array|bool $packageInfo;
 
 	/**
@@ -77,7 +81,7 @@ class ZipMetadataParser {
 	/**
 	 * Parsed and normalized package metadata.
 	 *
-	 * @var ?array
+	 * @var array<string, mixed>|null
 	 */
 	protected ?array $metadata = null;
 
@@ -96,6 +100,8 @@ class ZipMetadataParser {
 
 	/**
 	 * Return the parsed package metadata array.
+	 *
+	 * @return array<string, mixed>|null
 	 */
 	public function get(): ?array {
 		return $this->metadata;
@@ -167,8 +173,8 @@ class ZipMetadataParser {
 	/**
 	 * Copy fields from a source array into metadata using a key mapping.
 	 *
-	 * @param array $input Source data to read from.
-	 * @param array $map   Map of source keys to metadata keys.
+	 * @param array<string, mixed>  $input Source data to read from.
+	 * @param array<string, string> $map   Map of source keys to metadata keys.
 	 */
 	protected function setMappedFields( array $input, array $map ): void {
 		foreach ( $map as $fieldKey => $metaKey ) {
