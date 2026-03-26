@@ -14,7 +14,11 @@ namespace Apermo\WpUpdateServer\Cache;
  */
 class FileCache implements CacheInterface {
 
-	/** @var string Filesystem path to the cache directory. */
+	/**
+	 * @var string Filesystem path to the cache directory.
+	 *
+	 * @var string
+	 */
 	protected string $cacheDirectory;
 
 	/**
