@@ -21,32 +21,42 @@ namespace Apermo\WpUpdateServer\Auth;
  */
 class FileLicenseProvider implements LicenseProvider {
 
+	/** @var array<string, array{packages: string[], expires: string|null}> */
 	private array $licenses;
 
-	public function __construct(string $licensesFile) {
-		if (is_file($licensesFile) && is_readable($licensesFile)) {
-			$data = json_decode(file_get_contents($licensesFile), true);
-			$this->licenses = is_array($data) ? $data : [];
+	/**
+	 * @param string $licensesFile Path to the JSON licenses file.
+	 */
+	public function __construct( string $licensesFile ) {
+		if ( \is_file( $licensesFile ) && \is_readable( $licensesFile ) ) {
+			$data = \json_decode( \file_get_contents( $licensesFile ), true );
+			$this->licenses = \is_array( $data ) ? $data : [];
 		} else {
 			$this->licenses = [];
 		}
 	}
 
-	public function validate(string $key, string $slug): bool {
-		if (!isset($this->licenses[$key])) {
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param string $key  License key to validate.
+	 * @param string $slug Package slug the key must authorize.
+	 */
+	public function validate( string $key, string $slug ): bool {
+		if ( ! isset( $this->licenses[ $key ] ) ) {
 			return false;
 		}
 
-		$license = $this->licenses[$key];
+		$license = $this->licenses[ $key ];
 
 		// Check expiration.
 		$expires = $license['expires'] ?? null;
-		if ($expires !== null && strtotime($expires) < time()) {
+		if ( $expires !== null && \strtotime( $expires ) < \time() ) {
 			return false;
 		}
 
 		// Check slug authorization.
 		$packages = $license['packages'] ?? [];
-		return in_array('*', $packages, true) || in_array($slug, $packages, true);
+		return \in_array( '*', $packages, true ) || \in_array( $slug, $packages, true );
 	}
 }

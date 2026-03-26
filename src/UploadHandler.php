@@ -7,13 +7,25 @@ namespace Apermo\WpUpdateServer;
 use Apermo\WpUpdateServer\Cache\CacheInterface;
 use Apermo\WpUpdateServer\Cache\FileCache;
 use Apermo\WpUpdateServer\Validation\ZipValidator;
+use RuntimeException;
+use WshWordPressPackageParser;
 
+/**
+ * Processes uploaded ZIP files and stores them as versioned packages.
+ */
 class UploadHandler {
 
+	/** @var string Absolute path to the directory where packages are stored. */
 	private string $packageDirectory;
+
+	/** @var CacheInterface|null Cache backend for invalidating metadata after upload. */
 	private ?CacheInterface $cache;
 
-	public function __construct(string $packageDirectory, ?CacheInterface $cache = null) {
+	/**
+	 * @param string              $packageDirectory Absolute path to the packages directory.
+	 * @param CacheInterface|null $cache            Optional cache backend for metadata invalidation.
+	 */
+	public function __construct( string $packageDirectory, ?CacheInterface $cache = null ) {
 		$this->packageDirectory = $packageDirectory;
 		$this->cache = $cache;
 	}
@@ -21,58 +33,60 @@ class UploadHandler {
 	/**
 	 * Process an uploaded ZIP file.
 	 *
-	 * @param array $fileInfo The $_FILES entry for the uploaded file.
+	 * @param array       $fileInfo The $_FILES entry for the uploaded file.
 	 * @param string|null $expectedSlug Optional slug to validate against.
 	 * @return array{slug: string, version: string, path: string, metadata: array}
 	 * @throws \RuntimeException On validation or filesystem errors.
 	 */
-	public function handleUpload(array $fileInfo, ?string $expectedSlug = null): array {
-		$this->validateUploadedFile($fileInfo);
+	public function handleUpload( array $fileInfo, ?string $expectedSlug = null ): array {
+		$this->validateUploadedFile( $fileInfo );
 
 		$tmpFile = $fileInfo['tmp_name'];
 
-		$result = ZipValidator::validate($tmpFile, $expectedSlug);
-		if (!$result->isValid()) {
-			throw new \RuntimeException(
-				'Invalid package: ' . implode('; ', $result->getErrors())
+		$result = ZipValidator::validate( $tmpFile, $expectedSlug );
+		if ( ! $result->isValid() ) {
+			throw new RuntimeException(
+				'Invalid package: ' . \implode( '; ', $result->getErrors() ),
 			);
 		}
 
-		$packageInfo = \WshWordPressPackageParser::parsePackage($tmpFile);
-		if ($packageInfo === false) {
-			throw new \RuntimeException('Could not parse package metadata.');
+		$packageInfo = WshWordPressPackageParser::parsePackage( $tmpFile );
+		if ( $packageInfo === false ) {
+			throw new RuntimeException( 'Could not parse package metadata.' );
 		}
 
-		$slug = $this->detectSlug($packageInfo, $expectedSlug);
+		$slug = $this->detectSlug( $packageInfo, $expectedSlug );
 		$version = $packageInfo['header']['Version'] ?? null;
-		if (empty($version)) {
-			throw new \RuntimeException('Package does not contain a version header.');
+		if ( empty( $version ) ) {
+			throw new RuntimeException( 'Package does not contain a version header.' );
 		}
 
 		$targetDir = $this->packageDirectory . '/' . $slug . '/' . $version;
-		if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true)) {
-			throw new \RuntimeException('Failed to create directory: ' . $targetDir);
+		if ( ! \is_dir( $targetDir ) && ! \mkdir( $targetDir, 0755, true ) ) {
+			throw new RuntimeException( 'Failed to create directory: ' . $targetDir );
 		}
 
 		$targetPath = $targetDir . '/' . $slug . '.zip';
 
-		if (is_file($targetPath)) {
-			throw new \RuntimeException(sprintf(
-				'Version %s of %s already exists. Use ?force=1 to overwrite.',
-				$version,
-				$slug,
-			));
+		if ( \is_file( $targetPath ) ) {
+			throw new RuntimeException(
+				\sprintf(
+					'Version %s of %s already exists. Use ?force=1 to overwrite.',
+					$version,
+					$slug,
+				),
+			);
 		}
 
-		if (!move_uploaded_file($tmpFile, $targetPath)) {
-			throw new \RuntimeException('Failed to move uploaded file to target location.');
+		if ( ! \move_uploaded_file( $tmpFile, $targetPath ) ) {
+			throw new RuntimeException( 'Failed to move uploaded file to target location.' );
 		}
 
-		if ($this->cache instanceof FileCache) {
-			$this->cache->clearBySlug($slug);
+		if ( $this->cache instanceof FileCache ) {
+			$this->cache->clearBySlug( $slug );
 		}
 
-		$package = Package::fromArchive($targetPath, $slug, $this->cache);
+		$package = Package::fromArchive( $targetPath, $slug, $this->cache );
 
 		return [
 			'slug'     => $slug,
@@ -84,46 +98,51 @@ class UploadHandler {
 
 	/**
 	 * Handle a forced re-upload of an existing version.
+	 *
+	 * @param array       $fileInfo     The $_FILES entry for the uploaded file.
+	 * @param string|null $expectedSlug Optional slug to validate against.
+	 * @return array{slug: string, version: string, path: string, metadata: array}
+	 * @throws \RuntimeException On validation or filesystem errors.
 	 */
-	public function handleForceUpload(array $fileInfo, ?string $expectedSlug = null): array {
-		$this->validateUploadedFile($fileInfo);
+	public function handleForceUpload( array $fileInfo, ?string $expectedSlug = null ): array {
+		$this->validateUploadedFile( $fileInfo );
 
 		$tmpFile = $fileInfo['tmp_name'];
 
-		$result = ZipValidator::validate($tmpFile, $expectedSlug);
-		if (!$result->isValid()) {
-			throw new \RuntimeException(
-				'Invalid package: ' . implode('; ', $result->getErrors())
+		$result = ZipValidator::validate( $tmpFile, $expectedSlug );
+		if ( ! $result->isValid() ) {
+			throw new RuntimeException(
+				'Invalid package: ' . \implode( '; ', $result->getErrors() ),
 			);
 		}
 
-		$packageInfo = \WshWordPressPackageParser::parsePackage($tmpFile);
-		if ($packageInfo === false) {
-			throw new \RuntimeException('Could not parse package metadata.');
+		$packageInfo = WshWordPressPackageParser::parsePackage( $tmpFile );
+		if ( $packageInfo === false ) {
+			throw new RuntimeException( 'Could not parse package metadata.' );
 		}
 
-		$slug = $this->detectSlug($packageInfo, $expectedSlug);
+		$slug = $this->detectSlug( $packageInfo, $expectedSlug );
 		$version = $packageInfo['header']['Version'] ?? null;
-		if (empty($version)) {
-			throw new \RuntimeException('Package does not contain a version header.');
+		if ( empty( $version ) ) {
+			throw new RuntimeException( 'Package does not contain a version header.' );
 		}
 
 		$targetDir = $this->packageDirectory . '/' . $slug . '/' . $version;
-		if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true)) {
-			throw new \RuntimeException('Failed to create directory: ' . $targetDir);
+		if ( ! \is_dir( $targetDir ) && ! \mkdir( $targetDir, 0755, true ) ) {
+			throw new RuntimeException( 'Failed to create directory: ' . $targetDir );
 		}
 
 		$targetPath = $targetDir . '/' . $slug . '.zip';
 
-		if (!move_uploaded_file($tmpFile, $targetPath)) {
-			throw new \RuntimeException('Failed to move uploaded file to target location.');
+		if ( ! \move_uploaded_file( $tmpFile, $targetPath ) ) {
+			throw new RuntimeException( 'Failed to move uploaded file to target location.' );
 		}
 
-		if ($this->cache instanceof FileCache) {
-			$this->cache->clearBySlug($slug);
+		if ( $this->cache instanceof FileCache ) {
+			$this->cache->clearBySlug( $slug );
 		}
 
-		$package = Package::fromArchive($targetPath, $slug, $this->cache);
+		$package = Package::fromArchive( $targetPath, $slug, $this->cache );
 
 		return [
 			'slug'     => $slug,
@@ -133,39 +152,52 @@ class UploadHandler {
 		];
 	}
 
-	private function validateUploadedFile(array $fileInfo): void {
-		if (!isset($fileInfo['error'])) {
-			throw new \RuntimeException('No file was uploaded.');
+	/**
+	 * Validate the PHP file upload entry for errors.
+	 *
+	 * @param array $fileInfo The $_FILES entry for the uploaded file.
+	 * @throws \RuntimeException When the upload is missing or failed.
+	 */
+	private function validateUploadedFile( array $fileInfo ): void {
+		if ( ! isset( $fileInfo['error'] ) ) {
+			throw new RuntimeException( 'No file was uploaded.' );
 		}
 
-		if ($fileInfo['error'] !== UPLOAD_ERR_OK) {
-			$message = match ($fileInfo['error']) {
-				UPLOAD_ERR_INI_SIZE,
-				UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the maximum allowed size.',
-				UPLOAD_ERR_PARTIAL   => 'The file was only partially uploaded.',
-				UPLOAD_ERR_NO_FILE   => 'No file was uploaded.',
-				UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary directory on the server.',
-				UPLOAD_ERR_CANT_WRITE => 'Failed to write the uploaded file to disk.',
+		if ( $fileInfo['error'] !== \UPLOAD_ERR_OK ) {
+			$message = match ( $fileInfo['error'] ) {
+				\UPLOAD_ERR_INI_SIZE,
+				\UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the maximum allowed size.',
+				\UPLOAD_ERR_PARTIAL   => 'The file was only partially uploaded.',
+				\UPLOAD_ERR_NO_FILE   => 'No file was uploaded.',
+				\UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary directory on the server.',
+				\UPLOAD_ERR_CANT_WRITE => 'Failed to write the uploaded file to disk.',
 				default              => 'Unknown upload error (code ' . $fileInfo['error'] . ').',
 			};
-			throw new \RuntimeException($message);
+			throw new RuntimeException( $message );
 		}
 
-		if (!is_uploaded_file($fileInfo['tmp_name'])) {
-			throw new \RuntimeException('Invalid upload.');
+		if ( ! \is_uploaded_file( $fileInfo['tmp_name'] ) ) {
+			throw new RuntimeException( 'Invalid upload.' );
 		}
 	}
 
-	private function detectSlug(array $packageInfo, ?string $expectedSlug): string {
-		if ($expectedSlug !== null) {
-			return preg_replace('@[^a-z0-9\-_\.,+!]@i', '', $expectedSlug);
+	/**
+	 * Determine the package slug from the expected value or parsed metadata.
+	 *
+	 * @param array       $packageInfo  Parsed package metadata from WshWordPressPackageParser.
+	 * @param string|null $expectedSlug Explicit slug override, if provided.
+	 * @throws \RuntimeException When the slug cannot be determined.
+	 */
+	private function detectSlug( array $packageInfo, ?string $expectedSlug ): string {
+		if ( $expectedSlug !== null ) {
+			return \preg_replace( '@[^a-z0-9\-_\.,+!]@i', '', $expectedSlug );
 		}
 
 		$mainFile = $packageInfo['pluginFile'] ?? $packageInfo['stylesheet'] ?? null;
-		if ($mainFile === null) {
-			throw new \RuntimeException('Could not determine package slug.');
+		if ( $mainFile === null ) {
+			throw new RuntimeException( 'Could not determine package slug.' );
 		}
 
-		return basename(dirname(strtolower($mainFile)));
+		return \basename( \dirname( \strtolower( $mainFile ) ) );
 	}
 }
