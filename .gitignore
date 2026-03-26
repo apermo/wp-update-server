@@ -2,5 +2,8 @@ packages/*.zip
 cache/*.txt
 logs/*.log
 
+# Server configuration (copy config.sample.php)
+/config.php
+
 # Ignore the entire IDEA/PhpStorm directory
 .idea/

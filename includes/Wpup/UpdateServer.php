@@ -4,31 +4,32 @@ class Wpup_UpdateServer {
 	const FILE_PER_DAY = 'Y-m-d';
 	const FILE_PER_MONTH = 'Y-m';
 
-	protected $serverDirectory;
-	protected $packageDirectory;
-	protected $bannerDirectory;
-	protected $assetDirectories = array();
+	protected string $serverDirectory;
+	protected string $packageDirectory;
+	protected string $bannerDirectory;
+	protected array $assetDirectories = [];
 
-	protected $logDirectory;
-	protected $logRotationEnabled = false;
-	protected $logDateSuffix = null;
-	protected $logBackupCount = 0;
+	protected string $logDirectory;
+	protected bool $logRotationEnabled = false;
+	protected ?string $logDateSuffix = null;
+	protected int $logBackupCount = 0;
 
-	protected $cache;
-	protected $serverUrl;
-	protected $startTime = 0;
-	protected $packageFileLoader = array('Wpup_Package', 'fromArchive');
+	protected Wpup_Cache $cache;
+	protected Wpup_Config $config;
+	protected string $serverUrl;
+	protected float $startTime = 0;
+	protected $packageFileLoader = [Wpup_Package::class, 'fromArchive'];
 
-	protected $ipAnonymizationEnabled = false;
-	protected $ip4Mask = '';
-	protected $ip6Mask = '';
+	protected bool $ipAnonymizationEnabled = false;
+	protected string $ip4Mask = '';
+	protected string $ip6Mask = '';
 
-	public function __construct($serverUrl = null, $serverDirectory = null) {
-		if ( $serverDirectory === null ) {
+	public function __construct(?string $serverUrl = null, ?string $serverDirectory = null) {
+		if ($serverDirectory === null) {
 			$serverDirectory = realpath(__DIR__ . '/../..');
 		}
 		$this->serverDirectory = $this->normalizeFilePath($serverDirectory);
-		if ( $serverUrl === null ) {
+		if ($serverUrl === null) {
 			$serverUrl = self::guessServerUrl();
 		}
 
@@ -37,18 +38,40 @@ class Wpup_UpdateServer {
 		$this->logDirectory = $serverDirectory . '/logs';
 
 		$this->bannerDirectory = $serverDirectory . '/package-assets/banners';
-		$this->assetDirectories = array(
+		$this->assetDirectories = [
 			'banners' => $this->bannerDirectory,
 			'icons'   => $serverDirectory . '/package-assets/icons',
-		);
+		];
 
 		//Set up the IP anonymization masks.
-		//For 32-bit addresses, replace the last 8 bits with zeros.
 		$this->ip4Mask = pack('H*', 'ffffff00');
-		//For 128-bit addresses, zero out the last 80 bits.
 		$this->ip6Mask = pack('H*', 'ffffffffffff00000000000000000000');
 
 		$this->cache = new Wpup_FileCache($serverDirectory . '/cache');
+		$this->config = Wpup_Config::fromFile($this->serverDirectory . '/config.php');
+		$this->applyConfig();
+	}
+
+	/**
+	 * Apply configuration settings that map to existing server properties.
+	 */
+	protected function applyConfig(): void {
+		if ($this->config->get('logging.anonymize_ip', false)) {
+			$this->enableIpAnonymization();
+		}
+		if ($this->config->get('logging.rotation.enabled', false)) {
+			$this->enableLogRotation(
+				$this->config->get('logging.rotation.period', self::FILE_PER_MONTH),
+				$this->config->get('logging.rotation.keep', 10)
+			);
+		}
+	}
+
+	/**
+	 * Get a configuration value.
+	 */
+	public function getConfig(string $key, mixed $default = null): mixed {
+		return $this->config->get($key, $default);
 	}
 
 	/**
