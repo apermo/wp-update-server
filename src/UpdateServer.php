@@ -19,67 +19,135 @@ use RuntimeException;
  */
 class UpdateServer {
 
-	/** @var string Date format for daily log rotation. */
+	/** Date format for daily log rotation. */
 	public const FILE_PER_DAY = 'Y-m-d';
 
-	/** @var string Date format for monthly log rotation. */
+	/** Date format for monthly log rotation. */
 	public const FILE_PER_MONTH = 'Y-m';
 
-	/** @var string[] Allowed release channel identifiers. */
+	/** Allowed release channel identifiers. */
 	private const VALID_CHANNELS = [ 'stable', 'rc', 'beta', 'alpha' ];
 
-	/** @var string[] Actions that do not require a package slug. */
+	/** Actions that do not require a package slug. */
 	private const SLUG_OPTIONAL_ACTIONS = [ 'composer_packages', 'upload' ];
 
-	/** @var string Absolute path to the server root directory. */
+	/**
+	 * Absolute path to the server root directory.
+	 *
+	 * @var string
+	 */
 	protected string $serverDirectory;
 
-	/** @var string Absolute path to the directory containing package ZIP files. */
+	/**
+	 * Absolute path to the directory containing package ZIP files.
+	 *
+	 * @var string
+	 */
 	protected string $packageDirectory;
 
-	/** @var string Absolute path to the banner images directory. */
+	/**
+	 * Absolute path to the banner images directory.
+	 *
+	 * @var string
+	 */
 	protected string $bannerDirectory;
 
-	/** @var array<string, string> Map of asset type names to their directory paths. */
+	/**
+	 * Map of asset type names to their directory paths.
+	 *
+	 * @var array<string, string>
+	 */
 	protected array $assetDirectories = [];
 
-	/** @var string Absolute path to the log directory. */
+	/**
+	 * Absolute path to the log directory.
+	 *
+	 * @var string
+	 */
 	protected string $logDirectory;
 
-	/** @var bool Whether log file rotation is enabled. */
+	/**
+	 * Whether log file rotation is enabled.
+	 *
+	 * @var bool
+	 */
 	protected bool $logRotationEnabled = false;
 
-	/** @var string|null Date format suffix appended to rotated log filenames. */
+	/**
+	 * Date format suffix appended to rotated log filenames.
+	 *
+	 * @var ?string
+	 */
 	protected ?string $logDateSuffix = null;
 
-	/** @var int Maximum number of rotated log files to keep. */
+	/**
+	 * Maximum number of rotated log files to keep.
+	 *
+	 * @var int
+	 */
 	protected int $logBackupCount = 0;
 
-	/** @var CacheInterface Cache backend for package metadata. */
+	/**
+	 * Cache backend for package metadata.
+	 *
+	 * @var CacheInterface
+	 */
 	protected CacheInterface $cache;
 
-	/** @var Config Server configuration instance. */
+	/**
+	 * Server configuration instance.
+	 *
+	 * @var Config
+	 */
 	protected Config $config;
 
-	/** @var PackageRepository Repository for discovering and loading packages. */
+	/**
+	 * Repository for discovering and loading packages.
+	 *
+	 * @var PackageRepository
+	 */
 	protected PackageRepository $packageRepository;
 
-	/** @var string Public base URL of the update server. */
+	/**
+	 * Public base URL of the update server.
+	 *
+	 * @var string
+	 */
 	protected string $serverUrl;
 
-	/** @var float Microtime timestamp when request processing started. */
+	/**
+	 * Microtime timestamp when request processing started.
+	 *
+	 * @var float
+	 */
 	protected float $startTime = 0;
 
-	/** @var callable Factory callable used to load Package instances from ZIP archives. */
+	/**
+	 * Factory callable used to load Package instances from ZIP archives.
+	 *
+	 * @var mixed
+	 */
 	protected $packageFileLoader = [ Package::class, 'fromArchive' ];
 
-	/** @var bool Whether IP addresses are anonymized before logging. */
+	/**
+	 * Whether IP addresses are anonymized before logging.
+	 *
+	 * @var bool
+	 */
 	protected bool $ipAnonymizationEnabled = false;
 
-	/** @var string Binary mask for anonymizing IPv4 addresses. */
+	/**
+	 * Binary mask for anonymizing IPv4 addresses.
+	 *
+	 * @var string
+	 */
 	protected string $ip4Mask = '';
 
-	/** @var string Binary mask for anonymizing IPv6 addresses. */
+	/**
+	 * Binary mask for anonymizing IPv6 addresses.
+	 *
+	 * @var string
+	 */
 	protected string $ip6Mask = '';
 
 	/**
