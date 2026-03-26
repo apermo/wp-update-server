@@ -7,12 +7,28 @@ namespace Apermo\WpUpdateServer;
 /**
  * Generates Composer-compatible packages.json responses.
  */
+/**
+ * Generates Composer-compatible packages.json responses.
+ *
+ * Exposes all packages in the repository as a Composer v1/v2 repository,
+ * enabling `composer require vendor/slug` for WordPress plugins and themes.
+ */
 class ComposerEndpoint {
 
+	/** @var PackageRepository Package source for listing slugs and versions. */
 	private PackageRepository $repository;
+
+	/** @var string Base URL of the update server. */
 	private string $serverUrl;
+
+	/** @var string Composer vendor prefix (e.g. 'apermo'). */
 	private string $vendorPrefix;
 
+	/**
+	 * @param PackageRepository $repository   Package source.
+	 * @param string            $serverUrl    Base URL of the update server.
+	 * @param string            $vendorPrefix Composer vendor prefix.
+	 */
 	public function __construct(
 		PackageRepository $repository,
 		string $serverUrl,
@@ -31,14 +47,14 @@ class ComposerEndpoint {
 	public function generatePackagesJson(): array {
 		$packages = [];
 
-		foreach ($this->repository->listSlugs() as $slug) {
-			$allVersions = $this->repository->findAllVersions($slug);
+		foreach ( $this->repository->listSlugs() as $slug ) {
+			$allVersions = $this->repository->findAllVersions( $slug );
 			$composerName = $this->vendorPrefix . '/' . $slug;
 
-			foreach ($allVersions as $package) {
+			foreach ( $allVersions as $package ) {
 				$meta = $package->getMetadata();
 				$version = $meta['version'] ?? 'dev-main';
-				$type = ($meta['type'] ?? 'plugin') === 'theme'
+				$type = ( $meta['type'] ?? 'plugin' ) === 'theme'
 					? 'wordpress-theme'
 					: 'wordpress-plugin';
 
@@ -47,37 +63,53 @@ class ComposerEndpoint {
 					'version' => $version,
 					'type'    => $type,
 					'dist'    => [
-						'url'  => $this->generateDownloadUrl($slug, $version),
+						'url'  => $this->generateDownloadUrl( $slug, $version ),
 						'type' => 'zip',
 					],
 				];
 
-				$require = $this->buildRequirements($meta);
-				if (!empty($require)) {
+				$require = $this->buildRequirements( $meta );
+				if ( ! empty( $require ) ) {
 					$entry['require'] = $require;
 				}
 
-				$packages[$composerName][$version] = $entry;
+				$packages[ $composerName ][ $version ] = $entry;
 			}
 		}
 
-		return ['packages' => $packages];
+		return [ 'packages' => $packages ];
 	}
 
-	private function generateDownloadUrl(string $slug, string $version): string {
-		$query = http_build_query([
-			'action'  => 'download',
-			'slug'    => $slug,
-			'version' => $version,
-		], '', '&');
+	/**
+	 * Build a download URL for a specific package version.
+	 *
+	 * @param string $slug    Package slug.
+	 * @param string $version Version string.
+	 */
+	private function generateDownloadUrl( string $slug, string $version ): string {
+		$query = \http_build_query(
+			[
+				'action'  => 'download',
+				'slug'    => $slug,
+				'version' => $version,
+			],
+			'',
+			'&',
+		);
 
-		$separator = str_contains($this->serverUrl, '?') ? '&' : '?';
+		$separator = \str_contains( $this->serverUrl, '?' ) ? '&' : '?';
 		return $this->serverUrl . $separator . $query;
 	}
 
-	private function buildRequirements(array $meta): array {
+	/**
+	 * Build the Composer "require" section from package metadata.
+	 *
+	 * @param array<string, mixed> $meta Package metadata.
+	 * @return array<string, string> Composer requirement constraints.
+	 */
+	private function buildRequirements( array $meta ): array {
 		$require = [];
-		if (!empty($meta['requires_php'])) {
+		if ( ! empty( $meta['requires_php'] ) ) {
 			$require['php'] = '>=' . $meta['requires_php'];
 		}
 		return $require;
