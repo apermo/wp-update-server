@@ -13,3 +13,6 @@ vendor/
 
 # Ignore the entire IDEA/PhpStorm directory
 .idea/
+
+# Local test environments
+_misc_cd/
