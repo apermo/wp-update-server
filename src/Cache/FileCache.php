@@ -22,6 +22,8 @@ class FileCache implements CacheInterface {
 	protected string $cacheDirectory;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param string $cacheDirectory Filesystem path to the cache directory.
 	 */
 	public function __construct( string $cacheDirectory ) {

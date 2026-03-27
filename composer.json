@@ -1,7 +1,18 @@
 {
 	"name": "apermo/wp-update-server",
-	"description": "Custom update API server for WordPress plugins and themes.",
-	"keywords": ["wordpress", "plugin updates", "automatic updates", "theme updates", "composer repository"],
+	"description": "Self-hosted update API for WordPress plugins and themes, compatible with Plugin Update Checker and Composer.",
+	"keywords": [
+		"wordpress",
+		"plugin updates",
+		"theme updates",
+		"automatic updates",
+		"update server",
+		"self-hosted",
+		"composer repository",
+		"plugin-update-checker",
+		"wp-update-server",
+		"package server"
+	],
 	"homepage": "https://github.com/apermo/wp-update-server/",
 	"license": "MIT",
 	"authors": [
@@ -17,6 +28,9 @@
 			"role": "Maintainer"
 		}
 	],
+	"replace": {
+		"yahnis-elsts/wp-update-server": "2.0.2"
+	},
 	"require": {
 		"php": ">=8.0",
 		"ext-json": "*",
@@ -39,12 +53,16 @@
 		"phpstan/phpstan": "^2.0",
 		"phpstan/extension-installer": "^1.4",
 		"phpstan/phpstan-deprecation-rules": "^2.0",
-		"phpstan/phpstan-strict-rules": "^2.0"
+		"phpstan/phpstan-strict-rules": "^2.0",
+		"phpunit/phpunit": "^11.0"
 	},
 	"scripts": {
 		"cs": "phpcs",
 		"cs:fix": "phpcbf",
-		"analyse": "phpstan analyse --memory-limit=512M"
+		"analyse": "phpstan analyse --memory-limit=512M",
+		"test": "phpunit",
+		"test:unit": "phpunit --testsuite Unit",
+		"test:integration": "phpunit --testsuite Integration"
 	},
 	"config": {
 		"allow-plugins": {

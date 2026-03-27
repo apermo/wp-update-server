@@ -59,6 +59,10 @@
 
 		<!-- serialize/unserialize/base64 are core to the FileCache implementation. -->
 		<exclude name="WordPress.PHP.DiscouragedPHPFunctions"/>
+
+		<!-- No WordPress database layer in this project. -->
+		<exclude name="WordPress.DB"/>
+		<exclude name="Apermo.WordPress.NoHardcodedTableNames"/>
 	</rule>
 
 </ruleset>

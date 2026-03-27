@@ -33,8 +33,10 @@ class Package {
 	public string $slug;
 
 	/**
-	 * @param string      $slug     Package slug.
-	 * @param string|null $filename Path to the ZIP archive.
+	 * Create a new instance.
+	 *
+	 * @param string               $slug     Package slug.
+	 * @param string|null          $filename Path to the ZIP archive.
 	 * @param array<string, mixed> $metadata Pre-parsed metadata.
 	 */
 	public function __construct( string $slug, ?string $filename = null, array $metadata = [] ) {

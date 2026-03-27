@@ -9,6 +9,7 @@ use Apermo\WpUpdateServer\Auth\LicenseProvider;
 use Apermo\WpUpdateServer\Cache\CacheInterface;
 use Apermo\WpUpdateServer\Cache\FileCache;
 use Apermo\WpUpdateServer\Exception\InvalidPackageException;
+use Apermo\WpUpdateServer\Logging\RequestLogger;
 use RuntimeException;
 
 /**
@@ -19,16 +20,18 @@ use RuntimeException;
  */
 class UpdateServer {
 
-	/** Date format for daily log rotation. */
-	public const FILE_PER_DAY = 'Y-m-d';
-
-	/** Date format for monthly log rotation. */
-	public const FILE_PER_MONTH = 'Y-m';
-
-	/** Allowed release channel identifiers. */
+	/**
+	 * Allowed release channel identifiers.
+	 *
+	 * @var string[]
+	 */
 	private const VALID_CHANNELS = [ 'stable', 'rc', 'beta', 'alpha' ];
 
-	/** Actions that do not require a package slug. */
+	/**
+	 * Actions that do not require a package slug.
+	 *
+	 * @var string[]
+	 */
 	private const SLUG_OPTIONAL_ACTIONS = [ 'composer_packages', 'upload' ];
 
 	/**
@@ -60,34 +63,6 @@ class UpdateServer {
 	protected array $assetDirectories = [];
 
 	/**
-	 * Absolute path to the log directory.
-	 *
-	 * @var string
-	 */
-	protected string $logDirectory;
-
-	/**
-	 * Whether log file rotation is enabled.
-	 *
-	 * @var bool
-	 */
-	protected bool $logRotationEnabled = false;
-
-	/**
-	 * Date format suffix appended to rotated log filenames.
-	 *
-	 * @var ?string
-	 */
-	protected ?string $logDateSuffix = null;
-
-	/**
-	 * Maximum number of rotated log files to keep.
-	 *
-	 * @var int
-	 */
-	protected int $logBackupCount = 0;
-
-	/**
 	 * Cache backend for package metadata.
 	 *
 	 * @var CacheInterface
@@ -109,6 +84,13 @@ class UpdateServer {
 	protected PackageRepository $packageRepository;
 
 	/**
+	 * Request logger instance.
+	 *
+	 * @var RequestLogger
+	 */
+	protected RequestLogger $logger;
+
+	/**
 	 * Public base URL of the update server.
 	 *
 	 * @var string
@@ -125,32 +107,13 @@ class UpdateServer {
 	/**
 	 * Factory callable used to load Package instances from ZIP archives.
 	 *
-	 * @var mixed
+	 * @var callable
 	 */
-	protected $packageFileLoader = [ Package::class, 'fromArchive' ];
+	protected mixed $packageFileLoader = [ Package::class, 'fromArchive' ];
 
 	/**
-	 * Whether IP addresses are anonymized before logging.
+	 * Create a new instance.
 	 *
-	 * @var bool
-	 */
-	protected bool $ipAnonymizationEnabled = false;
-
-	/**
-	 * Binary mask for anonymizing IPv4 addresses.
-	 *
-	 * @var string
-	 */
-	protected string $ip4Mask = '';
-
-	/**
-	 * Binary mask for anonymizing IPv6 addresses.
-	 *
-	 * @var string
-	 */
-	protected string $ip6Mask = '';
-
-	/**
 	 * @param string|null $serverUrl      Public base URL; auto-detected when null.
 	 * @param string|null $serverDirectory Absolute path to the server root; defaults to parent of src/.
 	 */
@@ -166,7 +129,6 @@ class UpdateServer {
 
 		$this->serverUrl = $serverUrl;
 		$this->packageDirectory = $serverDirectory . '/packages';
-		$this->logDirectory = $serverDirectory . '/logs';
 
 		$this->bannerDirectory = $serverDirectory . '/package-assets/banners';
 		$this->assetDirectories = [
@@ -174,10 +136,8 @@ class UpdateServer {
 			'icons'   => $serverDirectory . '/package-assets/icons',
 		];
 
-		$this->ip4Mask = \pack( 'H*', 'ffffff00' );
-		$this->ip6Mask = \pack( 'H*', 'ffffffffffff00000000000000000000' );
-
 		$this->cache = new FileCache( $serverDirectory . '/cache' );
+		$this->logger = new RequestLogger( $serverDirectory . '/logs' );
 		$this->config = Config::fromFile( $this->serverDirectory . '/config.php' );
 		$this->packageRepository = new PackageRepository(
 			$this->packageDirectory,
@@ -220,10 +180,10 @@ class UpdateServer {
 	 */
 	public static function isSsl(): bool {
 		if ( isset( $_SERVER['HTTPS'] ) ) {
-			if ( ( $_SERVER['HTTPS'] == '1' ) || ( \strtolower( $_SERVER['HTTPS'] ) === 'on' ) ) {
+			if ( ( $_SERVER['HTTPS'] === '1' ) || ( \strtolower( $_SERVER['HTTPS'] ) === 'on' ) ) {
 				return true;
 			}
-		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] == '443' ) {
+		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && (string) $_SERVER['SERVER_PORT'] === '443' ) {
 			return true;
 		}
 
@@ -234,7 +194,7 @@ class UpdateServer {
 	 * Append query arguments to a URL, merging with any existing parameters.
 	 *
 	 * @param array<string, string|null> $args Key-value pairs to add to the query string.
-	 * @param string|null $url  Base URL; defaults to the guessed server URL.
+	 * @param string|null                $url  Base URL; defaults to the guessed server URL.
 	 */
 	protected static function addQueryArg( array $args, ?string $url = null ): string {
 		if ( $url === null ) {
@@ -260,12 +220,12 @@ class UpdateServer {
 	 */
 	protected function applyConfig(): void {
 		if ( $this->config->get( 'logging.anonymize_ip', false ) ) {
-			$this->enableIpAnonymization();
+			$this->logger->enableIpAnonymization();
 		}
 
 		if ( $this->config->get( 'logging.rotation.enabled', false ) ) {
-			$this->enableLogRotation(
-				$this->config->get( 'logging.rotation.period', self::FILE_PER_MONTH ),
+			$this->logger->enableLogRotation(
+				$this->config->get( 'logging.rotation.period', RequestLogger::FILE_PER_MONTH ),
 				(int) $this->config->get( 'logging.rotation.keep', 10 ),
 			);
 		}
@@ -290,14 +250,34 @@ class UpdateServer {
 	public function handleRequest( ?array $query = null, ?array $headers = null ): void {
 		$this->startTime = \microtime( true );
 
+		// Composer requests /packages.json on the repository URL.
+		if ( $this->isPackagesJsonRequest() ) {
+			$request = $this->initRequest( [ 'action' => 'composer_packages' ], $headers );
+			$this->logger->log( $request );
+			$this->actionComposerPackages( $request );
+			exit();
+		}
+
 		$request = $this->initRequest( $query, $headers );
-		$this->logRequest( $request );
+		$this->logger->log( $request );
 
 		$this->loadPackageFor( $request );
 		$this->validateRequest( $request );
 		$this->checkAuthorization( $request );
 		$this->dispatch( $request );
 		exit();
+	}
+
+	/**
+	 * Check if the current request is for /packages.json (Composer repository discovery).
+	 */
+	protected function isPackagesJsonRequest(): bool {
+		$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+		$path = \parse_url( $requestUri, \PHP_URL_PATH );
+		if ( ! \is_string( $path ) || $path === '' ) {
+			return false;
+		}
+		return \basename( $path ) === 'packages.json';
 	}
 
 	/**
@@ -343,7 +323,7 @@ class UpdateServer {
 
 		try {
 			$request->package = $this->findPackage( $request->slug, $version, $channel );
-		} catch ( InvalidPackageException $ex ) {
+		} catch ( InvalidPackageException $exception ) {
 			$this->exitWithError(
 				\sprintf(
 					'Package "%s" exists, but it is not a valid plugin or theme. '
@@ -451,9 +431,9 @@ class UpdateServer {
 					'metadata' => $result['metadata'],
 				],
 			);
-		} catch ( RuntimeException $ex ) {
-			$statusCode = \str_contains( $ex->getMessage(), 'already exists' ) ? 409 : 400;
-			$this->exitWithError( \htmlentities( $ex->getMessage() ), $statusCode );
+		} catch ( RuntimeException $exception ) {
+			$statusCode = \str_contains( $exception->getMessage(), 'already exists' ) ? 409 : 400;
+			$this->exitWithError( \htmlentities( $exception->getMessage() ), $statusCode );
 		}
 		exit();
 	}
@@ -528,7 +508,7 @@ class UpdateServer {
 	 * Override this method to customize update API responses.
 	 *
 	 * @param array<string, mixed> $meta Package metadata key-value pairs.
-	 * @param Request $request The current API request.
+	 * @param Request              $request The current API request.
 	 * @return array<string, mixed> Filtered metadata.
 	 */
 	protected function filterMetadata( array $meta, Request $request ): array {
@@ -705,9 +685,9 @@ class UpdateServer {
 	/**
 	 * Find the first matching asset file for a package and return its public URL.
 	 *
-	 * @param Package      $package    The package to find an asset for.
-	 * @param string       $assetType  Asset category key (e.g. 'banners', 'icons').
-	 * @param string       $suffix     Filename suffix before the extension (e.g. '-772x250').
+	 * @param Package         $package    The package to find an asset for.
+	 * @param string          $assetType  Asset category key (e.g. 'banners', 'icons').
+	 * @param string          $suffix     Filename suffix before the extension (e.g. '-772x250').
 	 * @param string[]|string $extensions File extension(s) to search for.
 	 */
 	protected function findFirstAsset(
@@ -757,189 +737,6 @@ class UpdateServer {
 	 */
 	protected function normalizeFilePath( string $path ): string {
 		return \str_replace( [ \DIRECTORY_SEPARATOR, '\\' ], '/', $path );
-	}
-
-	/**
-	 * Write a log entry for the current request to the log file.
-	 *
-	 * @param Request $request The current API request.
-	 */
-	protected function logRequest( Request $request ): void {
-		$logFile = $this->getLogFileName();
-
-		$mustRotate = $this->logRotationEnabled && ! \file_exists( $logFile );
-
-		$handle = \fopen( $logFile, 'a' );
-		if ( $handle && \flock( $handle, \LOCK_EX ) ) {
-			$loggedIp = $request->clientIp;
-			if ( $this->ipAnonymizationEnabled ) {
-				$loggedIp = $this->anonymizeIp( $loggedIp );
-			}
-
-			$columns = [
-				'ip'                => $loggedIp,
-				'http_method'       => $request->httpMethod,
-				'action'            => $request->param( 'action', '-' ),
-				'slug'              => $request->param( 'slug', '-' ),
-				'installed_version' => $request->param( 'installed_version', '-' ),
-				'wp_version'        => $request->wpVersion ?? '-',
-				'site_url'          => $request->wpSiteUrl ?? '-',
-				'query'             => \http_build_query( $request->query, '', '&' ),
-			];
-			$columns = $this->filterLogInfo( $columns, $request );
-			$columns = $this->escapeLogInfo( $columns );
-
-			if ( isset( $columns['ip'] ) ) {
-				$columns['ip'] = \str_pad( $columns['ip'], 15, ' ' );
-			}
-			if ( isset( $columns['http_method'] ) ) {
-				$columns['http_method'] = \str_pad( $columns['http_method'], 4, ' ' );
-			}
-
-			$configuredTz = \ini_get( 'date.timezone' );
-			if ( empty( $configuredTz ) ) {
-				\date_default_timezone_set( @\date_default_timezone_get() );
-			}
-
-			$line = \date( '[Y-m-d H:i:s O]' ) . ' ' . \implode( "\t", $columns ) . "\n";
-
-			\fwrite( $handle, $line );
-
-			if ( $mustRotate ) {
-				$this->rotateLogs();
-			}
-			\flock( $handle, \LOCK_UN );
-		}
-		if ( $handle ) {
-			\fclose( $handle );
-		}
-	}
-
-	/**
-	 * Build the full path to the current log file, including any rotation suffix.
-	 */
-	protected function getLogFileName(): string {
-		$path = $this->logDirectory . '/request';
-		if ( $this->logRotationEnabled ) {
-			$path .= '-' . \date( $this->logDateSuffix );
-		}
-		return $path . '.log';
-	}
-
-	/**
-	 * Adjust information that will be logged. Override in subclasses.
-	 *
-	 * @param array<string, string|null> $columns Key-value pairs of log data.
-	 * @param Request|null $request The current API request, if available.
-	 * @return array<string, string|null> Filtered log columns.
-	 */
-	protected function filterLogInfo( array $columns, ?Request $request = null ): array {
-		return $columns;
-	}
-
-	/**
-	 * Escape all values in a log column array.
-	 *
-	 * @param string[] $columns Raw log column values.
-	 * @return string[] Escaped columns.
-	 */
-	protected function escapeLogInfo( array $columns ): array {
-		return \array_map( [ $this, 'escapeLogValue' ], $columns );
-	}
-
-	/**
-	 * Escape non-printable and non-graphic characters in a single log value.
-	 *
-	 * @param string|null $value The raw log value.
-	 */
-	protected function escapeLogValue( ?string $value ): ?string {
-		if ( $value === null ) {
-			return null;
-		}
-
-		$regex = '/[[:^graph:]]/';
-
-		if ( \function_exists( 'mb_check_encoding' ) && \mb_check_encoding( $value, 'UTF-8' ) ) {
-			$regex .= 'u';
-		}
-
-		$value = \str_replace( '\\', '\\\\', $value );
-		$value = \preg_replace_callback(
-			$regex,
-			static function ( array $matches ): string {
-				$length = \strlen( $matches[0] );
-				$escaped = '';
-				for ( $i = 0; $i < $length; $i++ ) {
-					$hexCode = \dechex( \ord( $matches[0][ $i ] ) );
-					$escaped .= '\x' . \strtoupper( \str_pad( $hexCode, 2, '0', \STR_PAD_LEFT ) );
-				}
-				return $escaped;
-			},
-			$value,
-		);
-
-		return $value;
-	}
-
-	/**
-	 * Enable automatic log file rotation.
-	 *
-	 * @param string|null $rotationPeriod Date format for the log suffix; defaults to FILE_PER_MONTH.
-	 * @param int         $filesToKeep    Maximum number of rotated log files to retain.
-	 */
-	public function enableLogRotation( ?string $rotationPeriod = null, int $filesToKeep = 10 ): void {
-		if ( $rotationPeriod === null ) {
-			$rotationPeriod = self::FILE_PER_MONTH;
-		}
-
-		$this->logDateSuffix = $rotationPeriod;
-		$this->logBackupCount = $filesToKeep;
-		$this->logRotationEnabled = true;
-	}
-
-	/**
-	 * Delete old rotated log files that exceed the backup count.
-	 */
-	protected function rotateLogs(): void {
-		if ( $this->logBackupCount === 0 ) {
-			return;
-		}
-
-		$logFiles = \glob( $this->logDirectory . '/request*.log', \GLOB_NOESCAPE );
-		if ( \count( $logFiles ) <= $this->logBackupCount ) {
-			return;
-		}
-
-		\usort( $logFiles, 'strcmp' );
-		$logFiles = \array_reverse( $logFiles );
-
-		foreach ( \array_slice( $logFiles, $this->logBackupCount ) as $fileName ) {
-			@\unlink( $fileName );
-		}
-	}
-
-	/**
-	 * Enable IP address anonymization in log entries.
-	 */
-	public function enableIpAnonymization(): void {
-		$this->ipAnonymizationEnabled = true;
-	}
-
-	/**
-	 * Mask the host portion of an IP address for privacy.
-	 *
-	 * @param string $ip The IP address to anonymize.
-	 */
-	protected function anonymizeIp( string $ip ): string {
-		$binaryIp = @\inet_pton( $ip );
-		if ( \strlen( $binaryIp ) === 4 ) {
-			$anonBinaryIp = $binaryIp & $this->ip4Mask;
-		} elseif ( \strlen( $binaryIp ) === 16 ) {
-			$anonBinaryIp = $binaryIp & $this->ip6Mask;
-		} else {
-			return $ip;
-		}
-		return \inet_ntop( $anonBinaryIp );
 	}
 
 	/**

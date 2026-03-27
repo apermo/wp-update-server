@@ -86,6 +86,8 @@ class ZipMetadataParser {
 	protected ?array $metadata = null;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param string|null         $slug     Package slug identifier.
 	 * @param string              $filename Absolute path to the ZIP archive.
 	 * @param CacheInterface|null $cache    Optional cache backend for metadata.
@@ -210,7 +212,7 @@ class ZipMetadataParser {
 	 */
 	protected function setReadmeUpgradeNotice(): void {
 		if ( isset( $this->metadata['sections']['upgrade_notice'], $this->metadata['version'] ) ) {
-			$regex = '@<h4>\s*' . \preg_quote( $this->metadata['version'] ) . '\s*</h4>[^<>]*?<p>(.+?)</p>@i';
+			$regex = '@<h4>\s*' . \preg_quote( $this->metadata['version'], '@' ) . '\s*</h4>[^<>]*?<p>(.+?)</p>@i';
 			if ( \preg_match( $regex, $this->metadata['sections']['upgrade_notice'], $matches ) ) {
 				$this->metadata['upgrade_notice'] = \trim( \strip_tags( $matches[1] ) );
 			}

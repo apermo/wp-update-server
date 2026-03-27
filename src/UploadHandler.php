@@ -30,6 +30,8 @@ class UploadHandler {
 	private ?CacheInterface $cache;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param string              $packageDirectory Absolute path to the packages directory.
 	 * @param CacheInterface|null $cache            Optional cache backend for metadata invalidation.
 	 */
@@ -42,7 +44,7 @@ class UploadHandler {
 	 * Process an uploaded ZIP file.
 	 *
 	 * @param array<string, mixed> $fileInfo The $_FILES entry for the uploaded file.
-	 * @param string|null $expectedSlug Optional slug to validate against.
+	 * @param string|null          $expectedSlug Optional slug to validate against.
 	 * @return array{slug: string, version: string, path: string, metadata: array<string, mixed>}
 	 * @throws \RuntimeException On validation or filesystem errors.
 	 */
@@ -108,7 +110,7 @@ class UploadHandler {
 	 * Handle a forced re-upload of an existing version.
 	 *
 	 * @param array<string, mixed> $fileInfo The $_FILES entry for the uploaded file.
-	 * @param string|null $expectedSlug Optional slug to validate against.
+	 * @param string|null          $expectedSlug Optional slug to validate against.
 	 * @return array{slug: string, version: string, path: string, metadata: array<string, mixed>}
 	 * @throws \RuntimeException On validation or filesystem errors.
 	 */
@@ -193,7 +195,7 @@ class UploadHandler {
 	 * Determine the package slug from the expected value or parsed metadata.
 	 *
 	 * @param array<string, mixed> $packageInfo Parsed package metadata from WshWordPressPackageParser.
-	 * @param string|null $expectedSlug Explicit slug override, if provided.
+	 * @param string|null          $expectedSlug Explicit slug override, if provided.
 	 * @throws \RuntimeException When the slug cannot be determined.
 	 */
 	private function detectSlug( array $packageInfo, ?string $expectedSlug ): string {

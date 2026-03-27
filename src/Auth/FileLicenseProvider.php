@@ -29,6 +29,8 @@ class FileLicenseProvider implements LicenseProvider {
 	private array $licenses;
 
 	/**
+	 * Create a new instance.
+	 *
 	 * @param string $licensesFile Path to the JSON licenses file.
 	 */
 	public function __construct( string $licensesFile ) {
