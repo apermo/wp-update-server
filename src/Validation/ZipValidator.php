@@ -74,7 +74,6 @@ class ZipValidator {
 			);
 		}
 
-		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.hardcoded_table_names -- "archive" is a zip archive, not a database table.
 		return new ValidationResult( $errors );
 	}
 }
