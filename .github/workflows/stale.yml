@@ -6,4 +6,4 @@ on:
 
 jobs:
     stale:
-        uses: apermo/reusable-workflows/.github/workflows/stale.yml@main
+        uses: apermo/reusable-workflows/.github/workflows/reusable-stale.yml@main

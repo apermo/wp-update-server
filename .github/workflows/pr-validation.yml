@@ -6,4 +6,4 @@ on:
 
 jobs:
     validate:
-        uses: apermo/reusable-workflows/.github/workflows/pr-validation.yml@main
+        uses: apermo/reusable-workflows/.github/workflows/reusable-pr-validation.yml@main
