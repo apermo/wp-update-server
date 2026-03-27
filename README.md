@@ -112,6 +112,38 @@ Point Composer at your server as a repository:
 
 The vendor prefix is configurable in `config.php` (default: `wpup`).
 
+### Authenticated Composer access
+
+For packages that require a license key, Composer authenticates via its native `auth.json`
+mechanism. The server accepts Bearer tokens from the `Authorization` header, which Composer sends
+automatically when configured:
+
+```bash
+composer config bearer.your-server.com your-license-key
+```
+
+This stores the token in `auth.json` (not `composer.json`, so it stays out of version control):
+
+```json
+{
+    "bearer": {
+        "your-server.com": "your-license-key"
+    }
+}
+```
+
+Enable license authentication on the server side in `config.php`:
+
+```php
+return [
+    'auth' => [
+        'require_license' => true,
+        'public_packages' => ['free-plugin'],  // these don't need a key
+        'licenses_file'   => 'licenses.json',
+    ],
+];
+```
+
 ## API Reference
 
 | Endpoint | Method | Description |
