@@ -47,6 +47,7 @@ class GetMetadataTest extends TestCase {
 
 	public function testMetadataContainsRequiresPHP(): void {
 		$package = self::$repo->findPackage( 'hello-dolly' );
+		$this->assertNotNull( $package );
 		$meta = $package->getMetadata();
 
 		$this->assertArrayHasKey( 'requires_php', $meta );

@@ -56,9 +56,11 @@ class ConfigTest extends TestCase {
 		$tmpFile = \tempnam( \sys_get_temp_dir(), 'wpup_config_' );
 		\file_put_contents( $tmpFile, "<?php\nreturn 'not an array';\n" );
 
-		$this->expectException( \RuntimeException::class );
-		Config::fromFile( $tmpFile );
-
-		\unlink( $tmpFile );
+		try {
+			$this->expectException( \RuntimeException::class );
+			Config::fromFile( $tmpFile );
+		} finally {
+			\unlink( $tmpFile );
+		}
 	}
 }

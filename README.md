@@ -254,7 +254,7 @@ $server->handleRequest();
 Common extension points:
 - `filterMetadata()` — modify the JSON response
 - `checkAuthorization()` — custom auth logic
-- `filterLogInfo()` — customize log entries
+- `RequestLogger::filterLogInfo()` — customize log entries (subclass `RequestLogger`)
 - `dispatch()` — add custom actions
 
 ## Logging

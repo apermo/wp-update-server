@@ -274,7 +274,10 @@ class UpdateServer {
 	protected function isPackagesJsonRequest(): bool {
 		$requestUri = $_SERVER['REQUEST_URI'] ?? '';
 		$path = \parse_url( $requestUri, \PHP_URL_PATH );
-		return $path !== null && \basename( $path ) === 'packages.json';
+		if ( ! \is_string( $path ) || $path === '' ) {
+			return false;
+		}
+		return \basename( $path ) === 'packages.json';
 	}
 
 	/**

@@ -240,7 +240,7 @@ class RequestLogger {
 		}
 
 		$logFiles = \glob( $this->logDirectory . '/request*.log', \GLOB_NOESCAPE );
-		if ( \count( $logFiles ) <= $this->backupCount ) {
+		if ( $logFiles === false || \count( $logFiles ) <= $this->backupCount ) {
 			return;
 		}
 

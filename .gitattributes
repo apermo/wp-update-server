@@ -11,3 +11,6 @@
 /tests export-ignore
 /CLAUDE.md export-ignore
 /.ddev export-ignore
+/.gemini export-ignore
+
+*.zip binary
