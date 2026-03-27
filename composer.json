@@ -1,6 +1,6 @@
 {
 	"name": "apermo/wp-update-server",
-	"description": "Custom update API server for WordPress plugins and themes.",
+	"description": "Self-hosted update API for WordPress plugins and themes, compatible with Plugin Update Checker and Composer.",
 	"keywords": ["wordpress", "plugin updates", "automatic updates", "theme updates", "composer repository"],
 	"homepage": "https://github.com/apermo/wp-update-server/",
 	"license": "MIT",

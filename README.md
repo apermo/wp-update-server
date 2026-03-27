@@ -1,222 +1,226 @@
-WP Update Server
-================
+# WP Update Server
 
-A custom update API for WordPress plugins and themes. 
+A self-hosted update API for WordPress plugins and themes, compatible with the
+[Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library and Composer.
 
-Features
---------
-* **Provide updates for plugins and themes.**    
+Originally forked from [YahnisElsts/wp-update-server](https://github.com/YahnisElsts/wp-update-server),
+now independently maintained with a modernized codebase.
 
-  From the users perspective, the updates work just like they do with plugins and themes listed in the official WordPress.org directory.
-* **Easy to set up.**
+## Features
 
-  Just upload the script directory to your server and drop a plugin or theme ZIP in the `packages` subdirectory. Now you have a working update API at `http://yourserver.com/wp-update-server/?action=get_metadata&slug=your-plugin`.
-* **Easy to integrate** with existing plugins and themes.
+- **Plugin and theme updates** — works like WordPress.org from the user's perspective
+- **Multiple versions per package** — versioned directory layout with `?version=` parameter
+- **Pre-release channels** — distribute alpha/beta/RC builds via `?channel=` parameter
+- **Composer repository** — `?action=composer_packages` endpoint for `composer require`
+- **Upload API** — deploy new versions via `POST ?action=upload` with Bearer token auth
+- **License key authentication** — pluggable provider with file-based default
+- **Configuration file** — `config.php` for settings without subclassing
+- **Extensible by design** — override `filterMetadata()`, `checkAuthorization()`, or any method
 
-  All it takes is about 5 lines of code. See the [plugin update checker](http://w-shadow.com/blog/2010/09/02/automatic-updates-for-any-plugin/) and [theme update checker](http://w-shadow.com/blog/2011/06/02/automatic-updates-for-commercial-themes/) docs for details, or just scroll down to the "Getting Started" section for the short version.
-* **Minimal server requirements.**
+## Requirements
 
-  The server component requires PHP 5.3+ and the Zip extension. The client library only requires PHP 5.2 - same as the current version of WordPress.
-* **Designed for extensibility.**
+- PHP 8.0+
+- `ext-zip`
+- `ext-json`
 
-  Want to secure your upgrade download links? Or use a custom logger or cache? Maybe your plugin doesn't have a standard `readme.txt` and you'd prefer to load the changelog and other update meta from the database instead? Create your own customized server by extending the `Wpup_UpdateServer` class. See examples below.
-  	
-Getting Started
----------------
+## Quick Start
 
-### Setting Up the Server
-This part of the setup process is identical for both plugins and themes. For the sake of brevity, I'll describe it from the plugin perspective.
+### 1. Install
 
-1. Upload the `wp-update-server` directory to your site. You can rename it to something else (e.g. `updates`) if you want. 
-2. Make the `cache` and `logs` subdirectories writable by PHP.
-3. Create a Zip archive of your plugin's directory. The name of the archive must be the same as the name of the directory + ".zip".
-4. Copy the Zip file to the `packages` subdirectory.
-5. Verify that the API is working by visiting `/wp-update-server/?action=get_metadata&slug=plugin-directory-name` in your browser. You should see a JSON document containing various information about your plugin (name, version, description and so on).
-
-**Tip:** Use the JSONView extension ([Firefox](https://addons.mozilla.org/en-US/firefox/addon/10869/),  [Chrome](https://chrome.google.com/webstore/detail/jsonview/chklaanhfefbnpoihckbnefhakgolnmc)) to pretty-print JSON in the browser.
-
-When creating the Zip file, make sure the plugin files are inside a directory and not at the archive root. For example, lets say you have a plugin called "My Cool Plugin" and it lives inside `/wp-content/plugins/my-cool-plugin`. The ZIP file should be named `my-cool-plugin.zip` and it should contain the following:
-
-```
-/my-cool-plugin
-    /css
-    /js
-    /another-directory
-    my-cool-plugin.php
-    readme.txt
-    ...
+```bash
+git clone https://github.com/apermo/wp-update-server.git
+cd wp-update-server
+composer install
 ```
 
-If you put everything at the root, update notifications may show up just fine, but you will run into inexplicable problems when you try to install an update because WordPress expects plugin files to be inside a subdirectory.
+Or download the [latest release](https://github.com/apermo/wp-update-server/releases) and upload to
+your server. Composer is optional — a built-in PSR-4 autoloader handles class loading without it.
 
-### Integrating with Plugins
+### 2. Configure
 
-Now that you have the server ready to go, the next step is to make your plugin query it for updates. We'll use the [plugin-update-checker](https://github.com/YahnisElsts/plugin-update-checker) library to achieve that.
-
-1. Download the update checker.
-2. Move the `plugin-update-checker` directory to your plugin's directory.
-3. Add the following code to your main plugin file:
-
-	```php
-	require 'path/to/plugin-update-checker/plugin-update-checker.php';
-	use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
-	
-	$MyUpdateChecker = PucFactory::buildUpdateChecker(
-		'http://example.com/wp-update-server/?action=get_metadata&slug=plugin-directory-name', //Metadata URL.
-		__FILE__, //Full path to the main plugin file.
-		'plugin-directory-name' //Plugin slug. Usually it's the same as the name of the directory.
-	);
-	```
-4. When you're ready to release an update, just zip the plugin directory as described above and put it in the `packages` subdirectory on the server (overwriting the previous version). 
-
-The library will check for updates twice a day by default. If the update checker discovers that a new version is available, it will display an update notification in the WordPress Dashboard and the user will be able to install it by clicking the "upgrade now" link. It works just like with plugins hosted on WordPress.org from the users' perspective. 
-
-See the [update checker docs](http://w-shadow.com/blog/2010/09/02/automatic-updates-for-any-plugin/) for detailed usage instructions and and more examples.
-
-**Tip:** Create a `readme.txt` file for your plugin. If you have one, the update server will use it to generate the plugin information page that users see when they click the "View version x.y.z details" link in an update notification. The readme must conform to [the WordPress.org readme standard](http://wordpress.org/extend/plugins/about/readme.txt).
-
-**Note:** Your plugin or theme must be active for updates to work. One consequence of this is that on a multisite installation updates will only show up if your plugin is active on the main site. This is because only plugins that are enabled on the main site are loaded in the network admin. For reference, the main site is the one that has the path "/" in the *All Sites* list. 
-
-### Integrating with Themes
-
-1. Download the [theme update checker](http://w-shadow.com/blog/2011/06/02/automatic-updates-for-commercial-themes/) library.
-2. Place the `theme-updates` directory in your `includes` or the equivalent.
-3. Add this snippet to your `functions.php`:
-
-	```php
-	require 'path/to/theme-updates/theme-update-checker.php';
-	$MyThemeUpdateChecker = new ThemeUpdateChecker(
-		'theme-directory-name', //Theme slug. Usually the same as the name of its directory.
-		'http://example.com/wp-update-server/?action=get_metadata&slug=theme-directory-name' //Metadata URL.
-	);
-	```
-4. Add a `Details URI` header to your `style.css`:
-
-	`Details URI: http://example.com/my-theme-changelog.html`
-  
-	This header specifies the page that the user will see if they click the "View version x.y.z details" link in an update notification. Set it to the URL of your "What’s New In Version z.y.z" page or the theme homepage.
-
-Like with plugin updates, the theme update checker will query the server for theme details every 12 hours and display an update notification in the WordPress Dashboard if a new version is available.
-
-See the [theme update checker docs](http://w-shadow.com/blog/2011/06/02/automatic-updates-for-commercial-themes/) for more information.
-
-**Update:** The [plugin-update-checker](https://github.com/YahnisElsts/plugin-update-checker) library now also supports theme updates. The old theme update checker is no longer actively maintained.
-
-## Advanced Topics
-
-### Logging
-
-The server logs all API requests to the `/logs/request.log` file. Each line represents one request and is formatted like this:
-
-```
-[timestamp] IP_address	action	slug	installed_version	wordpress_version	site_url	query_string
+```bash
+cp config.sample.php config.php
 ```
 
-Missing or inapplicable fields are replaced with a dash "-". The logger extracts the WordPress version and site URL from the "User-Agent" header that WordPress adds to all requests sent via its HTTP API. These fields will not be present if you make an API request via the browser or if the header is removed or overriden by a plugin (some security plugins do that).
+Edit `config.php` to your needs. All settings are optional — the server works with sensible defaults.
 
-### Extending the server
+### 3. Add packages
 
-To customize the way the update server works, create your own server class that extends [Wpup_UpdateServer](includes/Wpup/UpdateServer.php) and edit the init script (that's `index.php` if you're running the server as a standalone app) to load and use the new class.
+Create the versioned directory structure and drop your ZIP files:
 
-For example, lets make a simple modification that disables downloads and removes the download URL from the plugin details returned by the update API. This could serve as a foundation for a custom server that requires authorization to download an update.
+```
+packages/
+  my-plugin/
+    1.0.0/
+      my-plugin.zip
+    1.1.0/
+      my-plugin.zip
+  my-theme/
+    2.0.0/
+      my-theme.zip
+```
 
-Add a new file `MyCustomServer.php` to `wp-update-server`:
+The ZIP must contain a single top-level directory matching the slug, with a valid `Plugin Name:` or
+`Theme Name:` header inside.
+
+### 4. Verify
+
+```
+https://your-server.com/wp-update-server/?action=get_metadata&slug=my-plugin
+```
+
+You should see a JSON response with the plugin metadata.
+
+## Integrating with Plugins
+
+Use the [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library:
 
 ```php
-class MyCustomServer extends Wpup_UpdateServer {
-	protected function filterMetadata($meta, $request) {
-		$meta = parent::filterMetadata($meta, $request);
-		unset($meta['download_url']);
-		return $meta;
-	}
-	
-	protected function actionDownload(Wpup_Request $request) {
-		$this->exitWithError('Downloads are disabled.', 403);
-	}
+require 'path/to/plugin-update-checker/plugin-update-checker.php';
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+$updateChecker = PucFactory::buildUpdateChecker(
+    'https://your-server.com/wp-update-server/?action=get_metadata&slug=my-plugin',
+    __FILE__,
+    'my-plugin'
+);
+```
+
+Updates will appear in the WordPress Dashboard just like plugins from WordPress.org.
+
+**Tip:** Create a `readme.txt` following the
+[WordPress.org standard](https://developer.wordpress.org/plugins/wordpress-org/how-your-readme-txt-works/)
+to populate the "View details" modal.
+
+## Integrating with Composer
+
+Point Composer at your server as a repository:
+
+```json
+{
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://your-server.com/wp-update-server/?action=composer_packages"
+        }
+    ],
+    "require": {
+        "your-vendor/my-plugin": "^1.0"
+    }
 }
 ```
 
-Edit `index.php` to use the new class:
+The vendor prefix is configurable in `config.php` (default: `wpup`).
+
+## API Reference
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `?action=get_metadata&slug=X` | GET | Package metadata (JSON) |
+| `?action=get_metadata&slug=X&version=1.0.0` | GET | Metadata for a specific version |
+| `?action=get_metadata&slug=X&channel=beta` | GET | Latest version for a stability channel |
+| `?action=download&slug=X` | GET | Download the latest stable ZIP |
+| `?action=download&slug=X&version=1.0.0` | GET | Download a specific version |
+| `?action=composer_packages` | GET | Composer `packages.json` |
+| `?action=upload` | POST | Upload a new package version (requires API key) |
+
+## Configuration
+
+Copy `config.sample.php` to `config.php`. Key options:
+
+```php
+return [
+    'vendor_prefix'        => 'wpup',     // Composer vendor prefix
+    'legacy_flat_packages' => false,       // Enable packages/{slug}.zip fallback
+    'logging' => [
+        'anonymize_ip' => false,
+        'rotation'     => ['enabled' => false, 'period' => 'Y-m', 'keep' => 10],
+    ],
+    'auth' => [
+        'require_license'  => false,
+        'public_packages'  => [],
+        'licenses_file'    => 'licenses.json',
+    ],
+    'upload' => [
+        'api_keys' => [],
+        'max_size' => 50 * 1024 * 1024,
+    ],
+];
+```
+
+See [`config.sample.php`](config.sample.php) for the full reference.
+
+## Extending the Server
+
+Create a subclass and override any method:
 
 ```php
 require __DIR__ . '/loader.php';
-require __DIR__ . '/MyCustomServer.php';
-$server = new MyCustomServer();
-$server->handleRequest();
-```
 
-### Running the server from another script
+use Apermo\WpUpdateServer\UpdateServer;
+use Apermo\WpUpdateServer\Request;
 
-While the easiest way to use the update server is to run it as a standalone application, that's not the only way to do it. If you need to, you can also load it as a third-party library and create your own server instance. This lets you  filter and modify query arguments before passing them to the server, run it from a WordPress plugin, use your own server class, and so on.
+class MyServer extends UpdateServer {
 
-To run the server from your own application you need to do three things:
-
-1. Include `/wp-update-server/loader.php`.
-2. Create an instance of `Wpup_UpdateServer` or a class that extends it.
-3. Call the `handleRequest($queryParams)` method.
-
-Here's a basic example plugin that runs the update server from inside WordPress:
-```php
-<?php
-/*
-Plugin Name: Plugin Update Server
-Description: An example plugin that runs the update API.
-Version: 1.0
-Author: Yahnis Elsts
-Author URI: http://w-shadow.com/
-*/
-
-require_once __DIR__ . '/path/to/wp-update-server/loader.php';
-
-class ExamplePlugin {
-	protected $updateServer;
-
-	public function __construct() {
-		$this->updateServer = new MyCustomServer(home_url('/'));
-		
-		//The "action" and "slug" query parameters are often used by the WordPress core
-		//or other plugins, so lets use different parameter names to avoid conflict.
-		add_filter('query_vars', array($this, 'addQueryVariables'));
-		add_action('template_redirect', array($this, 'handleUpdateApiRequest'));
-	}
-	
-	public function addQueryVariables($queryVariables) {
-		$queryVariables = array_merge($queryVariables, array(
-			'update_action',
-			'update_slug',
-		));
-		return $queryVariables;
-	}
-	
-	public function handleUpdateApiRequest() {
-		if ( get_query_var('update_action') ) {
-			$this->updateServer->handleRequest(array_merge($_GET, array(
-				'action' => get_query_var('update_action'),
-				'slug'   => get_query_var('update_slug'),
-			)));
-		}
-	}
-}
-
-class MyCustomServer extends Wpup_UpdateServer {
-    protected function generateDownloadUrl(Wpup_Package $package) {
-        $query = array(
-            'update_action' => 'download',
-            'update_slug' => $package->slug,
-        );
-        return self::addQueryArg($query, $this->serverUrl);
+    protected function filterMetadata( array $meta, Request $request ): array {
+        $meta = parent::filterMetadata( $meta, $request );
+        unset( $meta['download_url'] );
+        return $meta;
     }
 }
 
-$examplePlugin = new ExamplePlugin();
+$server = new MyServer();
+$server->handleRequest();
 ```
 
-**Note:** If you intend to use something like the above in practice, you'll probably want to override `Wpup_UpdateServer::generateDownloadUrl()` to customize the URLs or change the query parameters.
+Common extension points:
+- `filterMetadata()` — modify the JSON response
+- `checkAuthorization()` — custom auth logic
+- `filterLogInfo()` — customize log entries
+- `dispatch()` — add custom actions
 
-### Securing download links
+## Logging
 
-See [this blog post](http://w-shadow.com/blog/2013/03/19/plugin-updates-securing-download-links/) for a high-level overview and some brief examples.
+All requests are logged to `logs/request.log`:
 
-### Analytics
+```
+[2026-03-26 14:00:00 +0000] 192.168.1.xxx  GET  get_metadata  my-plugin  1.0.0  6.4  https://example.com  action=get_metadata&slug=my-plugin
+```
 
-You can use the [wp-update-server-stats](https://github.com/YahnisElsts/wp-update-server-stats) tool to parse server logs and display statistics like the number of active installs, active versions, and so on.
+Enable IP anonymization and log rotation in `config.php`.
+
+## Development
+
+```bash
+# Install dependencies
+composer install
+
+# Run tests
+composer test
+
+# Run code style checks
+composer cs
+
+# Run static analysis
+composer analyse
+
+# Start local DDEV environment
+ddev start
+
+# Run smoke tests against DDEV
+tests/smoke-test.sh
+```
+
+## Migrating from v2.x
+
+See [`docs/migration.md`](docs/migration.md) for a step-by-step upgrade guide including a shell
+script to migrate packages from the flat layout to the versioned directory structure.
+
+## Credits
+
+Originally created by [Yahnis Elsts](https://w-shadow.com/). Now independently maintained by
+[Christoph Daum](https://christoph-daum.de/).
+
+## License
+
+[MIT](license.txt)
