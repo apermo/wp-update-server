@@ -1,5 +1,10 @@
 # WP Update Server
 
+[![Packagist Version](https://img.shields.io/packagist/v/apermo/wp-update-server)](https://packagist.org/packages/apermo/wp-update-server)
+[![PHP Version](https://img.shields.io/packagist/php-v/apermo/wp-update-server)](https://packagist.org/packages/apermo/wp-update-server)
+[![License](https://img.shields.io/packagist/l/apermo/wp-update-server)](https://packagist.org/packages/apermo/wp-update-server)
+[![codecov](https://codecov.io/gh/apermo/wp-update-server/branch/master/graph/badge.svg)](https://codecov.io/gh/apermo/wp-update-server)
+
 A self-hosted update API for WordPress plugins and themes, compatible with the
 [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library and Composer.
 
