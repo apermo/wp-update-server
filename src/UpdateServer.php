@@ -869,21 +869,24 @@ class UpdateServer {
 		}
 
 		$value = \str_replace( '\\', '\\\\', $value );
-		$value = \preg_replace_callback(
-			$regex,
-			static function ( array $matches ): string {
-				$length = \strlen( $matches[0] );
-				$escaped = '';
-				for ( $i = 0; $i < $length; $i++ ) {
-					$hexCode = \dechex( \ord( $matches[0][ $i ] ) );
-					$escaped .= '\x' . \strtoupper( \str_pad( $hexCode, 2, '0', \STR_PAD_LEFT ) );
-				}
-				return $escaped;
-			},
-			$value,
-		);
+		$value = \preg_replace_callback( $regex, [ self::class, 'escapeNonGraphicCharacters' ], $value );
 
 		return $value;
+	}
+
+	/**
+	 * Convert non-graphic bytes in a regex match to hex escape sequences.
+	 *
+	 * @param array<int, string> $matches Regex match array.
+	 */
+	protected static function escapeNonGraphicCharacters( array $matches ): string {
+		$length = \strlen( $matches[0] );
+		$escaped = '';
+		for ( $index = 0; $index < $length; $index++ ) {
+			$hexCode = \dechex( \ord( $matches[0][ $index ] ) );
+			$escaped .= '\x' . \strtoupper( \str_pad( $hexCode, 2, '0', \STR_PAD_LEFT ) );
+		}
+		return $escaped;
 	}
 
 	/**
