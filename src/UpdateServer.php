@@ -869,7 +869,7 @@ class UpdateServer {
 		}
 
 		$value = \str_replace( '\\', '\\\\', $value );
-		$value = \preg_replace_callback( $regex, [ self::class, 'escapeNonGraphicCharacters' ], $value );
+		$value = \preg_replace_callback( $regex, [ $this, 'escapeNonGraphicCharacters' ], $value );
 
 		return $value;
 	}
@@ -879,7 +879,7 @@ class UpdateServer {
 	 *
 	 * @param array<int, string> $matches Regex match array.
 	 */
-	protected static function escapeNonGraphicCharacters( array $matches ): string {
+	protected function escapeNonGraphicCharacters( array $matches ): string {
 		$length = \strlen( $matches[0] );
 		$escaped = '';
 		for ( $index = 0; $index < $length; $index++ ) {
