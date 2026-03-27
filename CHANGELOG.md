@@ -7,6 +7,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-03-27
+
+### Added
+
+- Composer `/packages.json` route — Composer repository discovery via standard path (#19)
+- `.htaccess` rewrite rule for Apache/LiteSpeed, nginx configuration documented in README
+- `RequestLogger` class extracted from `UpdateServer` for dedicated logging responsibility
+- 20 new tests: `RequestLoggerTest` (11) and `PackagesJsonRouteTest` (9), bringing total to 74
+- Codecov integration for coverage tracking
+- Packagist publishing with keywords and `replaces` declaration for upstream package
+- README badges (Packagist version, PHP version, license, Codecov coverage)
+- Gemini Code Assist configuration for automated code review
+- EditorConfig and pre-commit git hook (PHPCS + PHPStan, non-blocking)
+- CI workflows: PHPCS + PHPStan + PHPUnit on PHP 8.2–8.4, PR validation, stale cleanup, Renovate
+- Integration and smoke tests for plugin-update-checker and Composer compatibility
+- Authenticated Composer access documentation
+- Web server configuration documentation (Apache, LiteSpeed, nginx)
+
+### Changed
+
+- `UpdateServer` reduced from ~960 to 782 lines by extracting logging to `RequestLogger`
+- PHPCS violations reduced from 55 to 10 (remaining are structural)
+- PHPStan baseline reduced from 39 to 36 errors
+- README rewritten for independent project with full feature documentation
+
+### Fixed
+
+- `parse_url()` false return guard in `/packages.json` route detection
+- `glob()` false return handling in log rotation
+- `preg_quote` missing delimiter in `ZipMetadataParser` upgrade notice extraction
+- Pre-commit hook handles filenames with spaces (null-terminated paths)
+- Constant doc comments expanded to multi-line format for PHPCS compliance
+- Temp file leak in `ConfigTest` exception test
+
 ## [3.0.0] - 2026-03-26
 
 ### Added
@@ -149,7 +183,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 - Automatic server URL detection
 - WordPress User-Agent parsing for version and site URL extraction
 
-[Unreleased]: https://github.com/apermo/wp-update-server/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/apermo/wp-update-server/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/apermo/wp-update-server/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/apermo/wp-update-server/compare/v2.0.2...v3.0.0
 [2.0.2]: https://github.com/apermo/wp-update-server/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/apermo/wp-update-server/compare/v2.0...v2.0.1
