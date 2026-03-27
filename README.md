@@ -101,7 +101,7 @@ Point Composer at your server as a repository:
     "repositories": [
         {
             "type": "composer",
-            "url": "https://your-server.com/wp-update-server/?action=composer_packages"
+            "url": "https://your-server.com/wp-update-server"
         }
     ],
     "require": {
@@ -109,6 +109,10 @@ Point Composer at your server as a repository:
     }
 }
 ```
+
+Composer requests `/packages.json` on the repository URL. This requires a web server rewrite rule
+to route the request through `index.php` — see [Web Server Configuration](#web-server-configuration)
+below.
 
 The vendor prefix is configurable in `config.php` (default: `wpup`).
 
@@ -181,6 +185,43 @@ return [
 ```
 
 See [`config.sample.php`](config.sample.php) for the full reference.
+
+## Web Server Configuration
+
+The Composer integration requires `/packages.json` to be routed through `index.php`. A matching
+`.htaccess` is included for Apache. For other web servers, add the equivalent rewrite rule.
+
+### Apache / LiteSpeed
+
+The included `.htaccess` handles this automatically. Ensure `mod_rewrite` is enabled:
+
+```apache
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^packages\.json$ index.php [L,QSA]
+</IfModule>
+```
+
+LiteSpeed is fully compatible with Apache `.htaccess` rewrite rules — no additional configuration
+needed.
+
+### nginx
+
+Add a location block to your server configuration:
+
+```nginx
+server {
+    # ... existing config ...
+
+    location = /packages.json {
+        rewrite ^ /index.php last;
+    }
+
+    location ~ \.php$ {
+        # ... your existing PHP-FPM config ...
+    }
+}
+```
 
 ## Extending the Server
 

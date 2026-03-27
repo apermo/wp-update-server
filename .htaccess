@@ -1,0 +1,6 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Route /packages.json to index.php for Composer repository discovery.
+    RewriteRule ^packages\.json$ index.php [L,QSA]
+</IfModule>

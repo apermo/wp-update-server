@@ -250,6 +250,14 @@ class UpdateServer {
 	public function handleRequest( ?array $query = null, ?array $headers = null ): void {
 		$this->startTime = \microtime( true );
 
+		// Composer requests /packages.json on the repository URL.
+		if ( $this->isPackagesJsonRequest() ) {
+			$request = $this->initRequest( [ 'action' => 'composer_packages' ], $headers );
+			$this->logger->log( $request );
+			$this->actionComposerPackages( $request );
+			exit();
+		}
+
 		$request = $this->initRequest( $query, $headers );
 		$this->logger->log( $request );
 
@@ -258,6 +266,15 @@ class UpdateServer {
 		$this->checkAuthorization( $request );
 		$this->dispatch( $request );
 		exit();
+	}
+
+	/**
+	 * Check if the current request is for /packages.json (Composer repository discovery).
+	 */
+	protected function isPackagesJsonRequest(): bool {
+		$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+		$path = \parse_url( $requestUri, \PHP_URL_PATH );
+		return $path !== null && \basename( $path ) === 'packages.json';
 	}
 
 	/**
