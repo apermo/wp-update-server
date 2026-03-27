@@ -20,10 +20,18 @@ use RuntimeException;
  */
 class UpdateServer {
 
-	/** @var string[] Allowed release channel identifiers. */
+	/**
+	 * Allowed release channel identifiers.
+	 *
+	 * @var string[]
+	 */
 	private const VALID_CHANNELS = [ 'stable', 'rc', 'beta', 'alpha' ];
 
-	/** @var string[] Actions that do not require a package slug. */
+	/**
+	 * Actions that do not require a package slug.
+	 *
+	 * @var string[]
+	 */
 	private const SLUG_OPTIONAL_ACTIONS = [ 'composer_packages', 'upload' ];
 
 	/**
