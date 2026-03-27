@@ -125,9 +125,9 @@ class UpdateServer {
 	/**
 	 * Factory callable used to load Package instances from ZIP archives.
 	 *
-	 * @var mixed
+	 * @var callable
 	 */
-	protected $packageFileLoader = [ Package::class, 'fromArchive' ];
+	protected mixed $packageFileLoader = [ Package::class, 'fromArchive' ];
 
 	/**
 	 * Whether IP addresses are anonymized before logging.
@@ -345,7 +345,7 @@ class UpdateServer {
 
 		try {
 			$request->package = $this->findPackage( $request->slug, $version, $channel );
-		} catch ( InvalidPackageException $ex ) {
+		} catch ( InvalidPackageException $exception ) {
 			$this->exitWithError(
 				\sprintf(
 					'Package "%s" exists, but it is not a valid plugin or theme. '
@@ -453,9 +453,9 @@ class UpdateServer {
 					'metadata' => $result['metadata'],
 				],
 			);
-		} catch ( RuntimeException $ex ) {
-			$statusCode = \str_contains( $ex->getMessage(), 'already exists' ) ? 409 : 400;
-			$this->exitWithError( \htmlentities( $ex->getMessage() ), $statusCode );
+		} catch ( RuntimeException $exception ) {
+			$statusCode = \str_contains( $exception->getMessage(), 'already exists' ) ? 409 : 400;
+			$this->exitWithError( \htmlentities( $exception->getMessage() ), $statusCode );
 		}
 		exit();
 	}
@@ -935,19 +935,19 @@ class UpdateServer {
 	/**
 	 * Mask the host portion of an IP address for privacy.
 	 *
-	 * @param string $ip The IP address to anonymize.
+	 * @param string $ipAddress The IP address to anonymize.
 	 */
-	protected function anonymizeIp( string $ip ): string {
-		$binaryIp = \inet_pton( $ip );
+	protected function anonymizeIp( string $ipAddress ): string {
+		$binaryIp = \inet_pton( $ipAddress );
 		if ( $binaryIp === false ) {
-			return $ip;
+			return $ipAddress;
 		}
 		if ( \strlen( $binaryIp ) === 4 ) {
 			$anonBinaryIp = $binaryIp & $this->ip4Mask;
 		} elseif ( \strlen( $binaryIp ) === 16 ) {
 			$anonBinaryIp = $binaryIp & $this->ip6Mask;
 		} else {
-			return $ip;
+			return $ipAddress;
 		}
 		return \inet_ntop( $anonBinaryIp );
 	}

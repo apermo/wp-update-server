@@ -40,9 +40,9 @@ class PackageRepository {
 	/**
 	 * Factory callable for creating Package instances from ZIP files.
 	 *
-	 * @var mixed
+	 * @var callable
 	 */
-	protected $packageFileLoader;
+	protected mixed $packageFileLoader;
 
 	/**
 	 * Create a new instance.
@@ -123,13 +123,13 @@ class PackageRepository {
 		}
 
 		$versions = \array_keys( $versionMap );
-		\usort( $versions, static fn( string $a, string $b ): int => VersionUtils::compareVersions( $b, $a ) );
+		\usort( $versions, static fn( string $left, string $right ): int => VersionUtils::compareVersions( $right, $left ) );
 
 		$packages = [];
 		foreach ( $versions as $version ) {
-			$pkg = $this->loadPackageFile( $versionMap[ $version ], $safeSlug );
-			if ( $pkg !== null ) {
-				$packages[] = $pkg;
+			$package = $this->loadPackageFile( $versionMap[ $version ], $safeSlug );
+			if ( $package !== null ) {
+				$packages[] = $package;
 			}
 		}
 		return $packages;
