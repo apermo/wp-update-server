@@ -45,6 +45,18 @@ parameters:
 		-
 			message: '#^Construct empty\(\) is not allowed\. Use more strict comparison\.$#'
 			identifier: empty.notAllowed
+			count: 1
+			path: src/Logging/RequestLogger.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and false will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Logging/RequestLogger.php
+
+		-
+			message: '#^Construct empty\(\) is not allowed\. Use more strict comparison\.$#'
+			identifier: empty.notAllowed
 			count: 3
 			path: src/PackageRepository.php
 
@@ -57,7 +69,7 @@ parameters:
 		-
 			message: '#^Construct empty\(\) is not allowed\. Use more strict comparison\.$#'
 			identifier: empty.notAllowed
-			count: 9
+			count: 8
 			path: src/UpdateServer.php
 
 		-
@@ -74,12 +86,6 @@ parameters:
 
 		-
 			message: '#^Strict comparison using \!\=\= between array\<mixed\>\|string and false will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: src/UpdateServer.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between string and false will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
 			path: src/UpdateServer.php
